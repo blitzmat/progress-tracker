@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Activity extends Model
 {
@@ -43,6 +44,14 @@ class Activity extends Model
     public function entries()
     {
         return $this->hasMany(Entry::class);
+    }
+
+    /**
+     * Get the widgets for the activity.
+     */
+    public function widgets(): HasMany
+    {
+        return $this->hasMany(Widget::class)->orderBy('position');
     }
 }
 

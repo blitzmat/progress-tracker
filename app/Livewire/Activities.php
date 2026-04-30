@@ -2,10 +2,12 @@
 
 namespace App\Livewire;
 
-use Livewire\Component;
+use App\Enums\WidgetType;
 use App\Models\Activity;
 use App\Models\Goal;
+use App\Models\Widget;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Component;
 
 class Activities extends Component
 {
@@ -23,6 +25,11 @@ class Activities extends Component
     // Property for delete confirmation
     public $confirmingDeletionId = null;
 
+    public $managingWidgetsActivityId = null;   // ID of activity whose widgets we are viewing
+    public $newWidgetType = '';
+    public $editingWidgetId = null;
+    public array $editSettings = [];
+
     // Validation rules
     protected $rules = [
         'name' => 'required|string|max:255',
@@ -37,6 +44,7 @@ class Activities extends Component
         return view('livewire.activities', [
             'activities' => $user->activities()->with('goal')->get(),
             'goals' => $user->goals()->orderBy('name')->get(),
+            'widgetTypes' => WidgetType::cases(),
         ])->layout('layouts.app');
     }
 
@@ -125,5 +133,105 @@ class Activities extends Component
 
         $this->confirmingDeletionId = null;
         session()->flash('message', 'Activity deleted successfully!');
+    }
+
+    /**
+     * Open/close the widget management panel for a specific activity.
+     */
+    public function toggleManageWidgets(int $activityId): void
+    {
+        $activity = Activity::findOrFail($activityId);
+        $this->authorizeActivityOwnership($activity);  // helper below
+
+        // Toggle: if already managing this activity, close; otherwise open
+        if ($this->managingWidgetsActivityId === $activityId) {
+            $this->closeWidgetManagement();
+        } else {
+            $this->managingWidgetsActivityId = $activityId;
+            $this->reset(['newWidgetType', 'editingWidgetId', 'editSettings']);
+        }
+    }
+
+    public function closeWidgetManagement(): void
+    {
+        $this->managingWidgetsActivityId = null;
+        $this->reset(['newWidgetType', 'editingWidgetId', 'editSettings']);
+    }
+
+    /**
+     * Add a new widget of the selected type to the managed activity.
+     */
+    public function addWidget(): void
+    {
+        $activity = Activity::findOrFail($this->managingWidgetsActivityId);
+        $this->authorizeActivityOwnership($activity);
+
+        $type = WidgetType::tryFrom($this->newWidgetType);
+        if (! $type) {
+            session()->flash('error', 'Invalid widget type.');
+            return;
+        }
+
+        $activity->widgets()->create([
+            'type'     => $type,
+            'label'    => $type->name,
+            'settings' => [
+                'tempo'  => 120,
+                'sound'  => 'beep',
+                'volume' => 0.5,    // default 50%
+            ],
+            'position' => $activity->widgets()->max('position') + 1,
+        ]);
+
+        $this->newWidgetType = '';
+        session()->flash('message', 'Widget added.');
+    }
+
+    /**
+     * Prepare a widget for editing its settings.
+     */
+    public function editWidget(int $widgetId): void
+    {
+        $widget = Widget::findOrFail($widgetId);
+        $this->authorizeActivityOwnership($widget->activity); // ensure activity belongs to user
+
+        $this->editingWidgetId   = $widget->id;
+        $this->editSettings      = $widget->settings;
+    }
+
+    /**
+     * Save widget settings.
+     */
+    public function updateWidget(): void
+    {
+        $widget = Widget::findOrFail($this->editingWidgetId);
+        $this->authorizeActivityOwnership($widget->activity);
+
+        $widget->update(['settings' => $this->editSettings]);
+
+        $this->reset(['editingWidgetId', 'editSettings']);
+        session()->flash('message', 'Widget settings updated.');
+    }
+
+    /**
+     * Delete a widget.
+     */
+    public function deleteWidget(int $widgetId): void
+    {
+        $widget = Widget::findOrFail($widgetId);
+        $this->authorizeActivityOwnership($widget->activity);
+
+        $widget->delete();
+        session()->flash('message', 'Widget removed.');
+    }
+
+    /**
+     * Simple ownership guard – abort 403 if not owner.
+     */
+    protected function authorizeActivityOwnership(Activity $activity): void
+    {
+        if ($activity->user_id !== Auth::id()) {
+            abort(403);
+        }
     }
 }
