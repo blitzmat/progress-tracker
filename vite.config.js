@@ -11,6 +11,9 @@ export default defineConfig({
             refresh: true,
         }),
     ],
+    optimizeDeps: {
+        exclude: ['@coderline/alphatab'],   // ← exclude alphaTab from pre-bundling
+    },
     // Add this server block for DDEV compatibility
     server: {
         host: '0.0.0.0', // Allows connections from outside the container

@@ -12,7 +12,7 @@
                 </div>
             @endif
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div class="grid grid-cols-1 lg:grid-cols-1 gap-8">
                 {{-- Left Column --}}
                 <div class="lg:col-span-1">
                     {{-- Setup Form (visible when timer not active) --}}
@@ -177,16 +177,8 @@
                                             class="mt-4 border-t pt-4 border-green-200 dark:border-green-700 text-left">
                                             <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Finger
                                                 Warm-up</h3>
-                                            <div class="flex gap-1 justify-center">
-                                                <template x-for="(num, index) in fingerPatternArray"
-                                                    :key="index">
-                                                    <div class="w-12 h-12 flex items-center justify-center rounded text-lg font-bold border"
-                                                        :class="fingerPosition === index ?
-                                                            'bg-green-600 text-white border-green-600' :
-                                                            'bg-gray-100 dark:bg-gray-600 text-gray-800 dark:text-gray-200 border-gray-300 dark:border-gray-500'"
-                                                        x-text="num">
-                                                    </div>
-                                                </template>
+                                            <!-- alphaTab container -->
+                                            <div id="finger-warmup-container" class="w-full min-h-[150px] alphaTab">
                                             </div>
                                             <p class="text-xs text-center text-gray-400 mt-1">
                                                 Pattern: <span x-text="fingerWarmupPattern"></span> &bull;
@@ -194,7 +186,6 @@
                                                     x-text="fingerWarmupNoteType.charAt(0).toUpperCase() + fingerWarmupNoteType.slice(1)"></span>
                                                 notes
                                             </p>
-
                                             {{-- Allow changing note type / pattern during session --}}
                                             <div class="mt-3 grid grid-cols-2 gap-2">
                                                 <div>
@@ -329,12 +320,24 @@
         </div>
     @endif
 
-    <audio id="notification-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-alarm-digital-clock-beep-989.mp3"
-        preload="auto"></audio>
 
     <style>
         [x-cloak] {
             display: none !important;
+        }
+
+        #finger-warmup-container {
+            min-height: 120px;
+            background: #f9fafb;
+            /* matches bg-gray-50 */
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+
+        .at-cursor-bar,
+        .at-cursor-beat {
+            background: rgba(34, 197, 94, 0.3);
+            /* green tint */
         }
     </style>
 
