@@ -16,6 +16,12 @@ class Dashboard extends Component
     public $editingEntryNotes;
     public $editingEntryDate;
     public $confirmingDeletionId = null;
+    public ?string $selectedActivityDescription = null;
+
+    // Finger Warmup widget
+    public bool $hasFingerWarmup = false;
+    public string $fingerWarmupNoteType = 'quarter';
+    public string $fingerWarmupPattern = '1-2-3-4';
 
     // Timer
     public bool $timerActive = false;          // ← restored
@@ -30,6 +36,7 @@ class Dashboard extends Component
     public string $widgetSound = 'beep';
     public float $widgetVolume = 0.5;
     public string $widgetTimeSignature = '4/4';
+    public ?string $widgetSummary = null;
 
     public function mount() {}
 
@@ -42,8 +49,6 @@ class Dashboard extends Component
         ]);
 
         $this->timerActive = true;
-        $this->timerRemaining = $this->timerDuration * 60;
-        $this->dispatch('start-timer', duration: $this->timerRemaining);
     }
 
     public function stopTimer()
@@ -81,8 +86,21 @@ class Dashboard extends Component
             ]);
         }
 
+        if ($this->hasFingerWarmup) {
+            $entry->widgets()->create([
+                'type'     => \App\Enums\WidgetType::FingerWarmup,
+                'label'    => 'Finger Warm‑up',
+                'settings' => [
+                    'note_type' => $this->fingerWarmupNoteType,
+                    'pattern'   => $this->fingerWarmupPattern,
+                ],
+                'position' => 1,
+            ]);
+        }
+
         $this->reset([
             'timerNotes', 'hasMetronome', 'widgetTempo', 'widgetSound', 'widgetVolume',
+            'hasFingerWarmup', 'fingerWarmupNoteType', 'fingerWarmupPattern',
         ]);
         $this->timerDuration = 1;
     }
@@ -180,16 +198,83 @@ class Dashboard extends Component
     public function render()
     {
         $user = Auth::user();
+
         $recentEntries = $user->entries()
-            ->with('activity.goal', 'widgets')
-            ->orderBy('created_at', 'desc')
-            ->take(10)
+                              ->with('activity.goal', 'widgets')
+                              ->orderBy('created_at', 'desc')
+                              ->take(10)
+                              ->get();
+
+        $activities = Activity::with('goal')
+            ->select('activities.*')
+            ->join('goals', 'activities.goal_id', '=', 'goals.id')
+            ->where(function ($q) use ($user) {
+                $q->where('activities.user_id', $user->id)
+                  ->orWhereNull('activities.user_id');
+            })
+            ->orderBy('goals.name')
+            ->orderBy('activities.name')
             ->get();
-        $activities = $user->activities()->with('goal')->orderBy('name')->get();
 
         return view('livewire.dashboard', [
             'recentEntries' => $recentEntries,
             'activities'    => $activities,
+            'selectedActivityDescription' => $this->selectedActivityDescription,
         ])->layout('layouts.app');
+    }
+
+
+    public function setActivity($value)
+    {
+        $this->selectedActivityForTimer = $value;
+
+        if ($value) {
+            $activity = Activity::find($value);
+            if ($activity) {
+                // --- Metronome ---
+                $metro = $activity->getWidgetSettings('metronome');
+                $this->hasMetronome = !empty($metro['tempo']);
+                if ($this->hasMetronome) {
+                    $this->widgetTempo = $metro['tempo'];
+                    $this->widgetSound = $metro['sound'] ?? 'beep';
+                    $this->widgetVolume = $metro['volume'] ?? 0.5;
+                    $this->widgetTimeSignature = $metro['time_signature'] ?? '4/4';
+                } else {
+                    // reset to defaults if no metronome
+                    $this->widgetTempo = 120;
+                    $this->widgetSound = 'beep';
+                    $this->widgetVolume = 0.5;
+                    $this->widgetTimeSignature = '4/4';
+                }
+
+                // --- Finger Warm‑up ---
+                $finger = $activity->getWidgetSettings('finger_warmup');
+                $this->hasFingerWarmup = !empty($finger['note_type']);
+                if ($this->hasFingerWarmup) {
+                    $this->fingerWarmupNoteType = $finger['note_type'];
+                    $this->fingerWarmupPattern = $finger['pattern'] ?? '1-2-3-4';
+                } else {
+                    $this->fingerWarmupNoteType = 'quarter';
+                    $this->fingerWarmupPattern = '1-2-3-4';
+                }
+
+                // --- Description for the UI ---
+                $parts = [];
+                if ($activity->description) {
+                    $parts[] = $activity->description;
+                }
+                if ($this->hasMetronome) {
+                    $parts[] = "Metronome: {$metro['tempo']} bpm, {$metro['time_signature']}";
+                }
+                if ($this->hasFingerWarmup) {
+                    $parts[] = "Finger: {$finger['pattern']} ({$finger['note_type']})";
+                }
+                $this->selectedActivityDescription = $parts ? implode(' | ', $parts) : null;
+            }
+        } else {
+            $this->selectedActivityDescription = null;
+            $this->hasMetronome = false;
+            $this->hasFingerWarmup = false;
+        }
     }
 }

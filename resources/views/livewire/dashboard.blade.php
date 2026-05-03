@@ -24,14 +24,50 @@
                                 <div>
                                     <label
                                         class="block text-sm font-medium text-gray-700 dark:text-gray-300">Activity</label>
-                                    <select wire:model="selectedActivityForTimer" required
+                                    <select wire:change="setActivity($event.target.value)" required
                                         class="mt-1 block w-full border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-600 dark:text-white">
                                         <option value="">Select an Activity</option>
                                         @foreach ($activities as $activity)
-                                            <option value="{{ $activity->id }}">[{{ $activity->goal->name }}]
-                                                {{ $activity->name }}</option>
+                                            <option value="{{ $activity->id }}">
+                                                @if ($activity->default_tempo)
+                                                    🎵
+                                                @endif
+                                                @if ($activity->default_finger_note_type)
+                                                    🖐️
+                                                @endif
+                                                [{{ $activity->goal->name }}] {{ $activity->name }}
+                                            </option>
                                         @endforeach
                                     </select>
+                                    @if ($selectedActivityDescription)
+                                        <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                                            {{ $selectedActivityDescription }}
+                                        </p>
+                                    @endif
+                                    @if ($selectedActivityForTimer && ($hasMetronome || $hasFingerWarmup))
+                                        <div
+                                            class="mt-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+                                            <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                Widgets for this Activity</h4>
+                                            @if ($hasMetronome)
+                                                <div
+                                                    class="flex items-center text-sm text-gray-600 dark:text-gray-400 space-x-2">
+                                                    <span class="text-blue-500">🎵</span>
+                                                    <span>Metronome: {{ $widgetTempo }} bpm,
+                                                        {{ $widgetTimeSignature }}, {{ $widgetSound }}
+                                                        ({{ intval($widgetVolume * 100) }}%)</span>
+                                                </div>
+                                            @endif
+                                            @if ($hasFingerWarmup)
+                                                <div
+                                                    class="flex items-center text-sm text-gray-600 dark:text-gray-400 space-x-2 mt-1">
+                                                    <span class="text-green-500">🖐️</span>
+                                                    <span>Finger Warm‑up: {{ $fingerWarmupPattern }}
+                                                        ({{ ucfirst($fingerWarmupNoteType) }} notes)</span>
+                                                </div>
+                                            @endif
+                                        </div>
+                                    @endif
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Duration
@@ -47,52 +83,6 @@
                                         class="mt-1 block w-full border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-600 dark:text-white"></textarea>
                                 </div>
 
-                                {{-- Metronome Toggle + Options (Livewire @if) --}}
-                                <div class="flex items-center space-x-3">
-                                    <input type="checkbox" wire:model.live="hasMetronome" id="hasMetronome"
-                                        class="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-600">
-                                    <label for="hasMetronome" class="text-sm text-gray-700 dark:text-gray-300">Use
-                                        Metronome</label>
-                                </div>
-                                @if ($hasMetronome)
-                                    <div class="pl-4 border-l-2 border-blue-300 dark:border-blue-500 space-y-3">
-                                        <div class="flex items-center space-x-2">
-                                            <label class="text-sm text-gray-700 dark:text-gray-300 w-16">BPM</label>
-                                            <input wire:model.live="widgetTempo" type="number" min="40"
-                                                max="240"
-                                                class="w-20 border rounded px-2 py-1 dark:bg-gray-600 dark:text-white text-sm">
-                                        </div>
-                                        <div class="flex items-center space-x-2">
-                                            <label class="text-sm text-gray-700 dark:text-gray-300 w-16">Sound</label>
-                                            <select wire:model.live="widgetSound"
-                                                class="border rounded px-2 py-1 dark:bg-gray-600 dark:text-white text-sm">
-                                                <option value="beep">Beep</option>
-                                                <option value="click">Click</option>
-                                                <option value="woodblock">Wood</option>
-                                                <option value="pulse">Pulse</option>
-                                            </select>
-                                        </div>
-                                        <div class="flex items-center space-x-2">
-                                            <label class="text-sm text-gray-700 dark:text-gray-300 w-16">Time
-                                                Sig.</label>
-                                            <select wire:model.live="widgetTimeSignature"
-                                                class="border rounded px-2 py-1 dark:bg-gray-600 dark:text-white text-sm">
-                                                <option value="2/4">2/4</option>
-                                                <option value="3/4">3/4</option>
-                                                <option value="4/4">4/4</option>
-                                                <option value="6/8">6/8</option>
-                                            </select>
-                                        </div>
-                                        <div class="flex items-center space-x-2">
-                                            <label class="text-sm text-gray-700 dark:text-gray-300 w-16">Volume</label>
-                                            <input wire:model.live="widgetVolume" type="range" min="0"
-                                                max="1" step="0.01"
-                                                class="w-full h-2 bg-gray-200 rounded-lg dark:bg-gray-600">
-                                            <span class="text-xs w-10">{{ intval($widgetVolume * 100) }}%</span>
-                                        </div>
-                                    </div>
-                                @endif
-
                                 <button wire:click="startTimer"
                                     class="w-full px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium">
                                     Start Practice Session
@@ -103,7 +93,7 @@
 
                     {{-- Active Timer + Countdown (inside wire:ignore, shown when timerActive) --}}
                     @if ($timerActive)
-                        <div x-data="timerComponent" wire:ignore>
+                        <div x-data="timerComponentData($wire)" wire:ignore>
                             {{-- Timer Card --}}
                             <div
                                 class="bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700 p-6 h-full">
@@ -111,7 +101,7 @@
                                 </h2>
 
                                 {{-- Active Timer Display --}}
-                                <div x-show="timerActive" class="text-center">
+                                <div class="text-center">
                                     <div class="mb-6">
                                         <div class="text-4xl font-bold text-blue-600 dark:text-blue-400 mb-2"
                                             x-text="Math.floor(secondsRemaining / 60) + ':' + (secondsRemaining % 60).toString().padStart(2, '0')">
@@ -133,50 +123,106 @@
                                         @endif
                                     </div>
 
-                                    {{-- Metronome Controls (Alpine x-show) --}}
-                                    <div x-show="hasMetronome"
-                                        class="mt-4 border-t pt-4 border-blue-200 dark:border-blue-700 text-left">
-                                        <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Metronome
-                                        </h3>
-                                        <div class="space-y-2">
-                                            <div class="flex items-center space-x-2">
-                                                <label class="text-xs text-gray-500 dark:text-gray-400 w-10">BPM</label>
-                                                <input wire:model.live="widgetTempo" type="number" min="40"
-                                                    max="240"
-                                                    class="w-16 border rounded px-2 py-1 text-sm dark:bg-gray-600 dark:text-white">
-                                            </div>
-                                            <div class="flex items-center space-x-2">
-                                                <label
-                                                    class="text-xs text-gray-500 dark:text-gray-400 w-10">Sound</label>
-                                                <select wire:model.live="widgetSound"
-                                                    class="border rounded px-2 py-1 text-sm dark:bg-gray-600 dark:text-white">
-                                                    <option value="beep">Beep</option>
-                                                    <option value="click">Click</option>
-                                                    <option value="woodblock">Wood</option>
-                                                    <option value="pulse">Pulse</option>
-                                                </select>
-                                            </div>
-                                            <div class="flex items-center space-x-2">
-                                                <label class="text-xs text-gray-500 dark:text-gray-400 w-10">Time
-                                                    Sig.</label>
-                                                <select wire:model.live="widgetTimeSignature"
-                                                    class="border rounded px-2 py-1 dark:bg-gray-600 dark:text-white text-sm">
-                                                    <option value="2/4">2/4</option>
-                                                    <option value="3/4">3/4</option>
-                                                    <option value="4/4">4/4</option>
-                                                    <option value="6/8">6/8</option>
-                                                </select>
-                                            </div>
-                                            <div class="flex items-center space-x-2">
-                                                <label
-                                                    class="text-xs text-gray-500 dark:text-gray-400 w-10">Volume</label>
-                                                <input wire:model.live="widgetVolume" type="range" min="0"
-                                                    max="1" step="0.01"
-                                                    class="w-full h-2 bg-gray-200 rounded dark:bg-gray-600">
-                                                <span class="text-xs w-10">{{ intval($widgetVolume * 100) }}%</span>
+                                    {{-- Metronome Controls --}}
+                                    @if ($hasMetronome)
+                                        <div class="mt-4 border-t pt-4 border-blue-200 dark:border-blue-700 text-left">
+                                            <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                                                Metronome</h3>
+                                            <div class="space-y-2">
+                                                <div class="flex items-center space-x-2">
+                                                    <label
+                                                        class="text-xs text-gray-500 dark:text-gray-400 w-10">BPM</label>
+                                                    <input wire:model.live="widgetTempo" type="number" min="40"
+                                                        max="240"
+                                                        class="w-16 border rounded px-2 py-1 text-sm dark:bg-gray-600 dark:text-white">
+                                                </div>
+                                                <div class="flex items-center space-x-2">
+                                                    <label
+                                                        class="text-xs text-gray-500 dark:text-gray-400 w-10">Sound</label>
+                                                    <select wire:model.live="widgetSound"
+                                                        class="border rounded px-2 py-1 text-sm dark:bg-gray-600 dark:text-white">
+                                                        <option value="beep">Beep</option>
+                                                        <option value="click">Click</option>
+                                                        <option value="woodblock">Wood</option>
+                                                        <option value="pulse">Pulse</option>
+                                                    </select>
+                                                </div>
+                                                <div class="flex items-center space-x-2">
+                                                    <label class="text-xs text-gray-500 dark:text-gray-400 w-10">Time
+                                                        Sig.</label>
+                                                    <select wire:model.live="widgetTimeSignature"
+                                                        class="border rounded px-2 py-1 dark:bg-gray-600 dark:text-white text-sm">
+                                                        <option value="2/4">2/4</option>
+                                                        <option value="3/4">3/4</option>
+                                                        <option value="4/4">4/4</option>
+                                                        <option value="6/8">6/8</option>
+                                                    </select>
+                                                </div>
+                                                <div class="flex items-center space-x-2">
+                                                    <label
+                                                        class="text-xs text-gray-500 dark:text-gray-400 w-10">Volume</label>
+                                                    <input wire:model.live="widgetVolume" type="range" min="0"
+                                                        max="1" step="0.01"
+                                                        class="w-full h-2 bg-gray-200 rounded dark:bg-gray-600">
+                                                    <span
+                                                        class="text-xs w-10">{{ intval($widgetVolume * 100) }}%</span>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
+                                    @endif
+
+                                    {{-- Finger Warm‑up Display --}}
+                                    @if ($hasFingerWarmup)
+                                        <div
+                                            class="mt-4 border-t pt-4 border-green-200 dark:border-green-700 text-left">
+                                            <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Finger
+                                                Warm-up</h3>
+                                            <div class="flex gap-1 justify-center">
+                                                <template x-for="(num, index) in fingerPatternArray"
+                                                    :key="index">
+                                                    <div class="w-12 h-12 flex items-center justify-center rounded text-lg font-bold border"
+                                                        :class="fingerPosition === index ?
+                                                            'bg-green-600 text-white border-green-600' :
+                                                            'bg-gray-100 dark:bg-gray-600 text-gray-800 dark:text-gray-200 border-gray-300 dark:border-gray-500'"
+                                                        x-text="num">
+                                                    </div>
+                                                </template>
+                                            </div>
+                                            <p class="text-xs text-center text-gray-400 mt-1">
+                                                Pattern: <span x-text="fingerWarmupPattern"></span> &bull;
+                                                <span
+                                                    x-text="fingerWarmupNoteType.charAt(0).toUpperCase() + fingerWarmupNoteType.slice(1)"></span>
+                                                notes
+                                            </p>
+
+                                            {{-- Allow changing note type / pattern during session --}}
+                                            <div class="mt-3 grid grid-cols-2 gap-2">
+                                                <div>
+                                                    <label class="text-xs text-gray-500 dark:text-gray-400">Note
+                                                        Type</label>
+                                                    <select wire:model.live="fingerWarmupNoteType"
+                                                        class="w-full border rounded px-2 py-1 dark:bg-gray-600 dark:text-white text-sm">
+                                                        <option value="quarter">Quarter</option>
+                                                        <option value="eighth">Eighth</option>
+                                                        <option value="sixteenth">16th</option>
+                                                        <option value="thirty-second">32nd</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label
+                                                        class="text-xs text-gray-500 dark:text-gray-400">Pattern</label>
+                                                    <select wire:model.live="fingerWarmupPattern"
+                                                        class="w-full border rounded px-2 py-1 dark:bg-gray-600 dark:text-white text-sm">
+                                                        <option value="1-2-3-4">1‑2‑3‑4</option>
+                                                        <option value="1-4-2-3">1‑4‑2‑3</option>
+                                                        <option value="4-3-2-1">4‑3‑2‑1</option>
+                                                        <option value="1-3-2-4">1‑3‑2‑4</option>
+                                                        <option value="2-4-1-3">2‑4‑1‑3</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endif
 
                                     <button @click="stopTimer()"
                                         class="w-full mt-4 px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 font-medium">
@@ -206,7 +252,7 @@
                             <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Recent Practice
                                 Sessions</h2>
                             @if ($recentEntries->count() > 0)
-                                <div class="space-y-4 max-h-96 overflow-y-auto">
+                                <div class="space-y-4 overflow-y-auto">
                                     @foreach ($recentEntries as $entry)
                                         <div class="p-4 border border-gray-200 dark:border-gray-600 rounded-lg">
                                             <div class="flex justify-between items-start">
@@ -285,180 +331,6 @@
 
     <audio id="notification-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-alarm-digital-clock-beep-989.mp3"
         preload="auto"></audio>
-
-    {{-- Alpine component definition (inside root element) --}}
-    <script>
-        document.addEventListener('alpine:init', () => {
-            Alpine.data('timerComponent', () => ({
-                // The timer display is already shown by Livewire (timerActive is true).
-                // Alpine properties
-                timerActive: true, // we are inside the active view, so start as true
-                secondsRemaining: 0,
-                interval: null,
-
-                hasMetronome: @entangle('hasMetronome'),
-                duration: @entangle('timerDuration'),
-                tempo: @entangle('widgetTempo'),
-                sound: @entangle('widgetSound'),
-                volume: @entangle('widgetVolume'),
-                timeSignature: @entangle('widgetTimeSignature'),
-
-                audioCtx: null,
-                metronomeInterval: null,
-                showCountdown: false,
-                countdownNumber: 3,
-                currentBeat: 1,
-
-                sounds: {
-                    beep: {
-                        type: 'sine',
-                        freq: 880,
-                        dur: 0.05,
-                        gain: 0.1
-                    },
-                    click: {
-                        type: 'square',
-                        freq: 1000,
-                        dur: 0.02,
-                        gain: 0.07
-                    },
-                    woodblock: {
-                        type: 'triangle',
-                        freq: 800,
-                        dur: 0.03,
-                        gain: 0.12
-                    },
-                    pulse: {
-                        type: 'sine',
-                        freq: 660,
-                        dur: 0.08,
-                        gain: 0.08
-                    },
-                },
-
-                init() {
-                    // Listen for the start event from Livewire (dispatched in startTimer())
-                    this.$wire.$on('start-timer', (event) => {
-                        // We already know we're active, so start the countdown
-                        this.secondsRemaining = event.duration;
-                        this.startCountdown();
-                    });
-                    // When Livewire wants to stop the timer
-                    this.$wire.$on('stop-timer', () => {
-                        this.cleanUp();
-                    });
-                    // Adapt to metronome changes
-                    this.$watch('tempo', (t) => {
-                        if (this.hasMetronome) this.startMetronome(t, this.sound);
-                    });
-                    this.$watch('sound', (s) => {
-                        if (this.hasMetronome) this.startMetronome(this.tempo, s);
-                    });
-                    this.$watch('timeSignature', () => {
-                        if (this.hasMetronome) this.startMetronome(this.tempo, this.sound);
-                    });
-                },
-
-                startCountdown() {
-                    if (this.showCountdown) return;
-                    this.showCountdown = true;
-                    this.countdownNumber = 3;
-                    this.playCountdownBeep();
-                    let cd = setInterval(() => {
-                        this.countdownNumber--;
-                        if (this.countdownNumber > 0) {
-                            this.playCountdownBeep();
-                        } else {
-                            clearInterval(cd);
-                            this.playCountdownBeep(); // "Go!"
-                            this.showCountdown = false;
-                            // Now start the actual timer
-                            this.startTimers();
-                        }
-                    }, 1000);
-                },
-                playCountdownBeep() {
-                    if (!this.audioCtx) this.ensureAudioContext();
-                    if (this.audioCtx) {
-                        let o = this.audioCtx.createOscillator();
-                        let g = this.audioCtx.createGain();
-                        g.gain.value = 0.1;
-                        o.type = 'sine';
-                        o.frequency.value = this.countdownNumber > 0 ? 880 : 1320;
-                        o.connect(g);
-                        g.connect(this.audioCtx.destination);
-                        o.start();
-                        o.stop(this.audioCtx.currentTime + 0.1);
-                    }
-                },
-
-                startTimers() {
-                    this.clearIntervals();
-                    this.interval = setInterval(() => {
-                        this.secondsRemaining--;
-                        if (this.secondsRemaining <= 0) {
-                            this.cleanUp();
-                            this.$wire.dispatch('timer-completed');
-                        }
-                    }, 1000);
-                    if (this.hasMetronome) {
-                        this.ensureAudioContext();
-                        this.startMetronome(this.tempo, this.sound);
-                    }
-                },
-                stopTimer() {
-                    this.$wire.stopTimer();
-                },
-                cleanUp() {
-                    this.clearIntervals();
-                    this.stopMetronome();
-                },
-                clearIntervals() {
-                    if (this.interval) {
-                        clearInterval(this.interval);
-                        this.interval = null;
-                    }
-                },
-
-                ensureAudioContext() {
-                    if (!this.audioCtx) this.audioCtx = new(window.AudioContext || window
-                        .webkitAudioContext)();
-                    if (this.audioCtx.state === 'suspended') this.audioCtx.resume();
-                },
-                playMetronomeBeep(sound, isAccent = false) {
-                    if (!this.audioCtx) return;
-                    const base = this.sounds[sound] || this.sounds['beep'];
-                    const o = this.audioCtx.createOscillator();
-                    const g = this.audioCtx.createGain();
-                    g.gain.value = base.gain * this.volume;
-                    o.type = base.type;
-                    o.frequency.value = isAccent ? base.freq * 1.5 : base.freq;
-                    o.connect(g);
-                    g.connect(this.audioCtx.destination);
-                    o.start();
-                    o.stop(this.audioCtx.currentTime + base.dur);
-                },
-                startMetronome(tempo, sound) {
-                    this.stopMetronome();
-                    if (!this.audioCtx) return;
-                    const numerator = parseInt(this.timeSignature.split('/')[0]);
-                    this.currentBeat = 1;
-                    this.metronomeInterval = setInterval(() => {
-                        const isAccent = this.currentBeat === 1;
-                        this.playMetronomeBeep(sound, isAccent);
-                        this.currentBeat = this.currentBeat >= numerator ? 1 : this
-                            .currentBeat + 1;
-                    }, 60000 / tempo);
-                },
-                stopMetronome() {
-                    if (this.metronomeInterval) {
-                        clearInterval(this.metronomeInterval);
-                        this.metronomeInterval = null;
-                    }
-                }
-            }));
-        });
-    </script>
 
     <style>
         [x-cloak] {

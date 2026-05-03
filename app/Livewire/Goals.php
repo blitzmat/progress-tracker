@@ -30,8 +30,16 @@ class Goals extends Component
     {
         $user = Auth::user();
 
+        $goals = Goal::with('activities')
+            ->where(function ($q) use ($user) {
+                $q->where('user_id', $user->id)
+                  ->orWhereNull('user_id');
+            })
+            ->orderBy('name')
+            ->get();
+
         return view('livewire.goals', [
-            'goals' => $user->goals()->orderBy('name')->get(),
+            'goals' => $goals,
         ])->layout('layouts.app');
     }
 

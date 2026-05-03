@@ -20,6 +20,7 @@ class Activity extends Model
         'goal_id',
         'name',
         'description',
+        'widget_settings'
     ];
 
     /**
@@ -53,5 +54,39 @@ class Activity extends Model
     {
         return $this->hasMany(Widget::class)->orderBy('position');
     }
+
+    /**
+     * Get all enabled widget types for this activity.
+     */
+    public function getEnabledWidgets(): array
+    {
+        return array_keys($this->widget_settings ?? []);
+    }
+
+    /**
+     * Get settings for a specific widget type.
+     */
+    public function getWidgetSettings(string $type): array
+    {
+        return $this->widget_settings[$type] ?? [];
+    }
+
+    /**
+     * Shortcut to check if a widget type is configured.
+     */
+    public function hasWidget(string $type): bool
+    {
+        return isset($this->widget_settings[$type]);
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'default_volume' => 'float',
+            'widget_settings' => 'array',
+        ];
+    }
+
+
 }
 

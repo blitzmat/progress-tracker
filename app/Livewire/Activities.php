@@ -22,13 +22,17 @@ class Activities extends Component
     public $editingDescription;
     public $editingGoalId;
 
+
     // Property for delete confirmation
     public $confirmingDeletionId = null;
 
     public $managingWidgetsActivityId = null;   // ID of activity whose widgets we are viewing
     public $newWidgetType = '';
+    public array $widgetSettings = [];
     public $editingWidgetId = null;
     public array $editSettings = [];
+    public array $editingWidgetSettings = [];
+
 
     // Validation rules
     protected $rules = [
@@ -42,9 +46,24 @@ class Activities extends Component
         $user = Auth::user();
 
         return view('livewire.activities', [
-            'activities' => $user->activities()->with('goal')->get(),
-            'goals' => $user->goals()->orderBy('name')->get(),
-            'widgetTypes' => WidgetType::cases(),
+            'activities' => Activity::with('goal')
+                ->select('activities.*')
+                ->join('goals', 'activities.goal_id', '=', 'goals.id')
+                ->where(function ($q) use ($user) {
+                    $q->where('activities.user_id', $user->id)
+                      ->orWhereNull('activities.user_id');
+                })
+                ->orderBy('goals.name')
+                ->orderBy('activities.name')
+                ->get(),
+
+            'goals' => Goal::with('stage')->where(function ($q) use ($user) {
+                $q->where('user_id', $user->id)
+                  ->orWhereNull('user_id');
+            })
+                                          ->orderBy('stage_id')
+                                          ->orderBy('name')
+                                          ->get(),
         ])->layout('layouts.app');
     }
 
@@ -57,10 +76,11 @@ class Activities extends Component
             'name' => $this->name,
             'description' => $this->description,
             'goal_id' => $this->goal_id,
+            'widget_settings' => $this->widgetSettings,
         ]);
 
         // Reset form fields
-        $this->reset(['name', 'description', 'goal_id']);
+        $this->reset(['name', 'description', 'goal_id', 'widgetSettings']);
 
         session()->flash('message', 'Activity created successfully!');
     }
@@ -78,6 +98,8 @@ class Activities extends Component
         $this->editingName = $activity->name;
         $this->editingDescription = $activity->description;
         $this->editingGoalId = $activity->goal_id;
+        $this->editingWidgetSettings = $activity->widget_settings ?? [];
+
     }
 
     public function update()
@@ -90,7 +112,6 @@ class Activities extends Component
 
         $activity = Activity::findOrFail($this->editingActivityId);
 
-        // Check if the activity belongs to the current user
         if ($activity->user_id !== Auth::id()) {
             abort(403);
         }
@@ -99,6 +120,7 @@ class Activities extends Component
             'name' => $this->editingName,
             'description' => $this->editingDescription,
             'goal_id' => $this->editingGoalId,
+            'widget_settings' => $this->editingWidgetSettings,
         ]);
 
         $this->cancelEdit();
@@ -107,7 +129,7 @@ class Activities extends Component
 
     public function cancelEdit()
     {
-        $this->reset(['editingActivityId', 'editingName', 'editingDescription', 'editingGoalId']);
+        $this->reset(['editingActivityId', 'editingName', 'editingDescription', 'editingGoalId', 'editingWidgetSettings']);
     }
 
     public function confirmDelete($activityId)
@@ -124,10 +146,12 @@ class Activities extends Component
     {
         $activity = Activity::findOrFail($this->confirmingDeletionId);
 
-        // Check if the activity belongs to the current user
         if ($activity->user_id !== Auth::id()) {
             abort(403);
         }
+
+        // Delete related entries (cascades to widgets)
+        $activity->entries()->delete();
 
         $activity->delete();
 
