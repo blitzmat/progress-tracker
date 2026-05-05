@@ -20,6 +20,8 @@ php artisan migrate --force || true
 
 if [ ! -f ".ddev/.initialized" ]; then
     echo "First-time setup..."
+    # Generate app key
+    php artisan key:generate || true
     # Storage link
     php artisan storage:link || true
     touch .ddev/.initialized
