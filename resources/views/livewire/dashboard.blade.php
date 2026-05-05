@@ -12,10 +12,9 @@
                 </div>
             @endif
 
-            <div class="grid grid-cols-1 lg:grid-cols-1 gap-8">
-                {{-- Left Column --}}
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {{-- Left Column: Practice Timer --}}
                 <div class="lg:col-span-1">
-                    {{-- Setup Form (visible when timer not active) --}}
                     @if (!$timerActive)
                         <div
                             class="bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700 p-6">
@@ -28,12 +27,10 @@
                                         class="mt-1 block w-full border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-600 dark:text-white">
                                         <option value="">Select an Activity</option>
                                         @foreach ($activities as $activity)
-                                            <option value="{{ $activity->id }}">
-                                                @if ($activity->default_tempo)
-                                                    🎵
-                                                @endif
-                                                @if ($activity->default_finger_note_type)
-                                                    🖐️
+                                            <option value="{{ $activity->id }}"
+                                                @if ($selectedActivityForTimer == $activity->id) selected @endif>
+                                                @if ($activity->hasAlphaTab())
+                                                    🎼
                                                 @endif
                                                 [{{ $activity->goal->name }}] {{ $activity->name }}
                                             </option>
@@ -41,32 +38,7 @@
                                     </select>
                                     @if ($selectedActivityDescription)
                                         <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                                            {{ $selectedActivityDescription }}
-                                        </p>
-                                    @endif
-                                    @if ($selectedActivityForTimer && ($hasMetronome || $hasFingerWarmup))
-                                        <div
-                                            class="mt-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
-                                            <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                                Widgets for this Activity</h4>
-                                            @if ($hasMetronome)
-                                                <div
-                                                    class="flex items-center text-sm text-gray-600 dark:text-gray-400 space-x-2">
-                                                    <span class="text-blue-500">🎵</span>
-                                                    <span>Metronome: {{ $widgetTempo }} bpm,
-                                                        {{ $widgetTimeSignature }}, {{ $widgetSound }}
-                                                        ({{ intval($widgetVolume * 100) }}%)</span>
-                                                </div>
-                                            @endif
-                                            @if ($hasFingerWarmup)
-                                                <div
-                                                    class="flex items-center text-sm text-gray-600 dark:text-gray-400 space-x-2 mt-1">
-                                                    <span class="text-green-500">🖐️</span>
-                                                    <span>Finger Warm‑up: {{ $fingerWarmupPattern }}
-                                                        ({{ ucfirst($fingerWarmupNoteType) }} notes)</span>
-                                                </div>
-                                            @endif
-                                        </div>
+                                            {{ $selectedActivityDescription }}</p>
                                     @endif
                                 </div>
                                 <div>
@@ -83,24 +55,49 @@
                                         class="mt-1 block w-full border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-600 dark:text-white"></textarea>
                                 </div>
 
+                                {{-- AlphaTab playback controls (shown only if activity has alphaTab) --}}
+                                @if ($hasAlphaTab)
+                                    <div class="pl-4 border-l-2 border-purple-300 dark:border-purple-500 space-y-3">
+                                        <div class="flex items-center space-x-2">
+                                            <label class="text-sm text-gray-700 dark:text-gray-300 w-16">Tempo</label>
+                                            <input wire:model.live="alphaTabTempo" type="number" min="40"
+                                                max="240"
+                                                class="w-20 border rounded px-2 py-1 dark:bg-gray-600 dark:text-white text-sm">
+                                        </div>
+                                        <div class="flex items-center space-x-2">
+                                            <label class="text-sm text-gray-700 dark:text-gray-300 w-16">Volume</label>
+                                            <input wire:model.live="alphaTabVolume" type="range" min="0"
+                                                max="1" step="0.01"
+                                                class="w-full h-2 bg-gray-200 rounded-lg dark:bg-gray-600">
+                                            <span class="text-xs w-10">{{ intval($alphaTabVolume * 100) }}%</span>
+                                        </div>
+                                        <div class="flex items-center space-x-2">
+                                            <label class="text-sm text-gray-700 dark:text-gray-300 w-16">Time
+                                                Sig.</label>
+                                            <select wire:model.live="alphaTabTimeSignature"
+                                                class="border rounded px-2 py-1 dark:bg-gray-600 dark:text-white text-sm">
+                                                <option value="2/4">2/4</option>
+                                                <option value="3/4">3/4</option>
+                                                <option value="4/4">4/4</option>
+                                                <option value="6/8">6/8</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                @endif
+
                                 <button wire:click="startTimer"
                                     class="w-full px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium">
                                     Start Practice Session
                                 </button>
                             </div>
                         </div>
-                    @endif
-
-                    {{-- Active Timer + Countdown (inside wire:ignore, shown when timerActive) --}}
-                    @if ($timerActive)
+                    @else
+                        {{-- Active Timer --}}
                         <div x-data="timerComponentData($wire)" wire:ignore>
-                            {{-- Timer Card --}}
                             <div
                                 class="bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700 p-6 h-full">
                                 <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Practice Timer
                                 </h2>
-
-                                {{-- Active Timer Display --}}
                                 <div class="text-center">
                                     <div class="mb-6">
                                         <div class="text-4xl font-bold text-blue-600 dark:text-blue-400 mb-2"
@@ -111,9 +108,7 @@
                                     <div class="mb-6 p-4 bg-white dark:bg-gray-700 rounded-lg">
                                         <p class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Current
                                             Session:</p>
-                                        @php
-                                            $currentActivity = $activities->firstWhere('id', $selectedActivityForTimer);
-                                        @endphp
+                                        @php $currentActivity = $activities->firstWhere('id', $selectedActivityForTimer); @endphp
                                         <p class="text-lg text-blue-600 dark:text-blue-400 font-semibold">
                                             {{ $currentActivity ? $currentActivity->name : 'Loading...' }}
                                         </p>
@@ -123,92 +118,34 @@
                                         @endif
                                     </div>
 
-                                    {{-- Metronome Controls --}}
-                                    @if ($hasMetronome)
-                                        <div class="mt-4 border-t pt-4 border-blue-200 dark:border-blue-700 text-left">
+                                    {{-- AlphaTab container --}}
+                                    @if ($hasAlphaTab)
+                                        <div
+                                            class="mt-4 border-t pt-4 border-purple-200 dark:border-purple-700 text-left">
                                             <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                                                Metronome</h3>
-                                            <div class="space-y-2">
-                                                <div class="flex items-center space-x-2">
-                                                    <label
-                                                        class="text-xs text-gray-500 dark:text-gray-400 w-10">BPM</label>
-                                                    <input wire:model.live="widgetTempo" type="number" min="40"
+                                                AlphaTab Exercise</h3>
+                                            <div id="alphaTab-container" class="w-full min-h-[150px]"></div>
+                                            {{-- Inline controls (can adjust during session) --}}
+                                            <div class="mt-3 grid grid-cols-3 gap-2">
+                                                <div>
+                                                    <label class="text-xs text-gray-500">Tempo</label>
+                                                    <input wire:model.live="alphaTabTempo" type="number" min="40"
                                                         max="240"
-                                                        class="w-16 border rounded px-2 py-1 text-sm dark:bg-gray-600 dark:text-white">
+                                                        class="w-full border rounded px-2 py-1 dark:bg-gray-600 dark:text-white text-sm">
                                                 </div>
-                                                <div class="flex items-center space-x-2">
-                                                    <label
-                                                        class="text-xs text-gray-500 dark:text-gray-400 w-10">Sound</label>
-                                                    <select wire:model.live="widgetSound"
-                                                        class="border rounded px-2 py-1 text-sm dark:bg-gray-600 dark:text-white">
-                                                        <option value="beep">Beep</option>
-                                                        <option value="click">Click</option>
-                                                        <option value="woodblock">Wood</option>
-                                                        <option value="pulse">Pulse</option>
-                                                    </select>
+                                                <div>
+                                                    <label class="text-xs text-gray-500">Volume</label>
+                                                    <input wire:model.live="alphaTabVolume" type="range"
+                                                        min="0" max="1" step="0.01" class="w-full">
                                                 </div>
-                                                <div class="flex items-center space-x-2">
-                                                    <label class="text-xs text-gray-500 dark:text-gray-400 w-10">Time
-                                                        Sig.</label>
-                                                    <select wire:model.live="widgetTimeSignature"
-                                                        class="border rounded px-2 py-1 dark:bg-gray-600 dark:text-white text-sm">
+                                                <div>
+                                                    <label class="text-xs text-gray-500">Time Sig.</label>
+                                                    <select wire:model.live="alphaTabTimeSignature"
+                                                        class="w-full border rounded px-2 py-1 dark:bg-gray-600 dark:text-white text-sm">
                                                         <option value="2/4">2/4</option>
                                                         <option value="3/4">3/4</option>
                                                         <option value="4/4">4/4</option>
                                                         <option value="6/8">6/8</option>
-                                                    </select>
-                                                </div>
-                                                <div class="flex items-center space-x-2">
-                                                    <label
-                                                        class="text-xs text-gray-500 dark:text-gray-400 w-10">Volume</label>
-                                                    <input wire:model.live="widgetVolume" type="range" min="0"
-                                                        max="1" step="0.01"
-                                                        class="w-full h-2 bg-gray-200 rounded dark:bg-gray-600">
-                                                    <span
-                                                        class="text-xs w-10">{{ intval($widgetVolume * 100) }}%</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    @endif
-
-                                    {{-- Finger Warm‑up Display --}}
-                                    @if ($hasFingerWarmup)
-                                        <div
-                                            class="mt-4 border-t pt-4 border-green-200 dark:border-green-700 text-left">
-                                            <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Finger
-                                                Warm-up</h3>
-                                            <!-- alphaTab container -->
-                                            <div id="finger-warmup-container" class="w-full min-h-[150px] alphaTab">
-                                            </div>
-                                            <p class="text-xs text-center text-gray-400 mt-1">
-                                                Pattern: <span x-text="fingerWarmupPattern"></span> &bull;
-                                                <span
-                                                    x-text="fingerWarmupNoteType.charAt(0).toUpperCase() + fingerWarmupNoteType.slice(1)"></span>
-                                                notes
-                                            </p>
-                                            {{-- Allow changing note type / pattern during session --}}
-                                            <div class="mt-3 grid grid-cols-2 gap-2">
-                                                <div>
-                                                    <label class="text-xs text-gray-500 dark:text-gray-400">Note
-                                                        Type</label>
-                                                    <select wire:model.live="fingerWarmupNoteType"
-                                                        class="w-full border rounded px-2 py-1 dark:bg-gray-600 dark:text-white text-sm">
-                                                        <option value="quarter">Quarter</option>
-                                                        <option value="eighth">Eighth</option>
-                                                        <option value="sixteenth">16th</option>
-                                                        <option value="thirty-second">32nd</option>
-                                                    </select>
-                                                </div>
-                                                <div>
-                                                    <label
-                                                        class="text-xs text-gray-500 dark:text-gray-400">Pattern</label>
-                                                    <select wire:model.live="fingerWarmupPattern"
-                                                        class="w-full border rounded px-2 py-1 dark:bg-gray-600 dark:text-white text-sm">
-                                                        <option value="1-2-3-4">1‑2‑3‑4</option>
-                                                        <option value="1-4-2-3">1‑4‑2‑3</option>
-                                                        <option value="4-3-2-1">4‑3‑2‑1</option>
-                                                        <option value="1-3-2-4">1‑3‑2‑4</option>
-                                                        <option value="2-4-1-3">2‑4‑1‑3</option>
                                                     </select>
                                                 </div>
                                             </div>
@@ -227,17 +164,15 @@
                                 class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
                                 <div class="text-center">
                                     <div x-text="countdownNumber" class="text-8xl font-bold text-white"></div>
-                                    <div x-show="countdownNumber === 0" class="text-3xl font-bold text-white">Go!
-                                    </div>
+                                    <div x-show="countdownNumber === 0" class="text-3xl font-bold text-white">Go!</div>
                                 </div>
                             </div>
                         </div>
                     @endif
                 </div>
 
-                {{-- Right Column: Recent Practice Sessions --}}
+                {{-- Right Column: Recent Practice Sessions (unchanged, but update widget display) --}}
                 <div class="lg:col-span-1">
-                    <!-- Same as before, unchanged -->
                     <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg h-full">
                         <div class="p-6">
                             <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Recent Practice
@@ -268,14 +203,11 @@
                                                             {{ Str::limit($entry->notes, 100) }}</p>
                                                     @endif
                                                     @if ($entry->widgets->isNotEmpty())
-                                                        @php $metronome = $entry->widgets->firstWhere('type', \App\Enums\WidgetType::Metronome); @endphp
-                                                        @if ($metronome && isset($metronome->settings['tempo']))
+                                                        @php $alphaTab = $entry->widgets->firstWhere('type', \App\Enums\WidgetType::AlphaTab); @endphp
+                                                        @if ($alphaTab && isset($alphaTab->settings['tex']))
                                                             <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                                                                🥁 {{ $metronome->settings['tempo'] }} bpm
-                                                                ({{ $metronome->settings['sound'] ?? 'beep' }})
-                                                                @if (isset($metronome->settings['timeSignature']))
-                                                                    ({{ $metronome->settings['timeSignature'] }})
-                                                                @endif
+                                                                🎼 AlphaTab: {{ $alphaTab->settings['tempo'] ?? 120 }}
+                                                                bpm
                                                             </p>
                                                         @endif
                                                     @endif
@@ -320,25 +252,6 @@
         </div>
     @endif
 
-
-    <style>
-        [x-cloak] {
-            display: none !important;
-        }
-
-        #finger-warmup-container {
-            min-height: 120px;
-            background: #f9fafb;
-            /* matches bg-gray-50 */
-            border-radius: 0.5rem;
-            overflow: hidden;
-        }
-
-        .at-cursor-bar,
-        .at-cursor-beat {
-            background: rgba(34, 197, 94, 0.3);
-            /* green tint */
-        }
-    </style>
-
+    <audio id="notification-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-alarm-digital-clock-beep-989.mp3"
+        preload="auto"></audio>
 </div>

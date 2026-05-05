@@ -7,12 +7,28 @@ export default defineConfig({
             input: [
                 'resources/css/app.css',
                 'resources/js/app.js',
+                'resources/js/timer-component.js',
+                'resources/js/alpha-tab.js',
+                'resources/js/activity-widget-settings.js',
             ],
             refresh: true,
         }),
     ],
     optimizeDeps: {
         exclude: ['@coderline/alphatab'],   // ← exclude alphaTab from pre-bundling
+    },
+    build: {
+        chunkSizeWarningLimit: 1000, // increase to 1 MB (optional, stops the warning)
+        rollupOptions: {
+            output: {
+                manualChunks(id) {
+                    // Put alphaTab and its large soundfont in a separate chunk
+                    if (id.includes('node_modules/@coderline/alphatab')) {
+                        return 'alphatab';
+                    }
+                },
+            },
+        },
     },
     // Add this server block for DDEV compatibility
     server: {

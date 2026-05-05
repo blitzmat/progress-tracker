@@ -10,83 +10,54 @@ class Activity extends Model
 {
     use HasFactory;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
         'user_id',
         'goal_id',
         'name',
         'description',
-        'widget_settings'
+        'widget_settings',
     ];
 
-    /**
-     * Get the user that owns the activity.
-     */
+    protected function casts(): array
+    {
+        return [
+            'widget_settings' => 'array',
+        ];
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
-    /**
-     * Get the goal that owns the activity.
-     */
     public function goal()
     {
         return $this->belongsTo(Goal::class);
     }
 
-    /**
-     * Get the entries for the activity.
-     */
     public function entries()
     {
         return $this->hasMany(Entry::class);
     }
 
-    /**
-     * Get the widgets for the activity.
-     */
     public function widgets(): HasMany
     {
         return $this->hasMany(Widget::class)->orderBy('position');
     }
 
     /**
-     * Get all enabled widget types for this activity.
+     * Check if an alphaTab exercise is configured.
      */
-    public function getEnabledWidgets(): array
+    public function hasAlphaTab(): bool
     {
-        return array_keys($this->widget_settings ?? []);
+        return isset($this->widget_settings['alpha_tab']['tex']);
     }
 
     /**
-     * Get settings for a specific widget type.
+     * Get a specific alphaTab setting.
      */
-    public function getWidgetSettings(string $type): array
+    public function getAlphaTabSetting(string $key, mixed $default = null): mixed
     {
-        return $this->widget_settings[$type] ?? [];
+        return $this->widget_settings['alpha_tab'][$key] ?? $default;
     }
-
-    /**
-     * Shortcut to check if a widget type is configured.
-     */
-    public function hasWidget(string $type): bool
-    {
-        return isset($this->widget_settings[$type]);
-    }
-
-    protected function casts(): array
-    {
-        return [
-            'default_volume' => 'float',
-            'widget_settings' => 'array',
-        ];
-    }
-
-
 }
-

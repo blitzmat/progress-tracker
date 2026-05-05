@@ -53,100 +53,64 @@
                                     <span class="text-red-500 text-sm">{{ $message }}</span>
                                 @enderror
                             </div>
-                            {{-- Widget Settings (create form) --}}
-                            <div x-data="activityWidgetSettings($wire, false)">
-                                <div class="mt-4 border-t pt-4">
-                                    <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Widget
-                                        Settings</h3>
+                            {{-- AlphaTab Exercise Settings --}}
+                            <div class="mt-4 border-t pt-4">
+                                <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">AlphaTab Exercise
+                                </h3>
 
-                                    <!-- Metronome -->
-                                    <div class="flex items-center space-x-3 mb-3">
-                                        <input id="widget-metronome" type="checkbox" @change="toggleMetronome()"
-                                            :checked="metronome?.tempo"
-                                            class="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-600">
-                                        <label for="widget-metronome"
-                                            class="text-sm text-gray-700 dark:text-gray-300">Enable Metronome</label>
-                                    </div>
-                                    <template x-if="metronome">
-                                        <div
-                                            class="pl-4 border-l-2 border-blue-300 dark:border-blue-500 space-y-3 mb-4">
-                                            <div class="flex items-center space-x-2">
-                                                <label class="text-sm text-gray-700 dark:text-gray-300 w-16">BPM</label>
-                                                <input type="number" x-model.number="metronome.tempo" min="40"
-                                                    max="240" @input="updateWidgets()"
-                                                    class="w-20 border rounded px-2 py-1 dark:bg-gray-600 dark:text-white text-sm">
+                                <div class="flex items-center space-x-3 mb-3">
+                                    <input type="checkbox" wire:model.live="enableAlphaTab" id="enableAlphaTab"
+                                        class="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-600">
+                                    <label for="enableAlphaTab" class="text-sm text-gray-700 dark:text-gray-300">Enable
+                                        AlphaTab Exercise</label>
+                                </div>
+
+                                @if ($enableAlphaTab)
+                                    <div class="pl-4 border-l-2 border-purple-300 dark:border-purple-500 space-y-4">
+                                        <!-- alphaTex editor -->
+                                        <div>
+                                            <label class="text-sm text-gray-700 dark:text-gray-300">alphaTex
+                                                Code</label>
+                                            <textarea wire:model.live="alphaTabTex" rows="6"
+                                                class="mt-1 block w-full border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-600 dark:text-white text-sm font-mono"
+                                                placeholder="\tuning E4 B3 G3 D3 A2 E2
+\staff{score tabs}
+:8 1.6 2.6 3.6 4.6 | 1.6 2.6 3.6 4.6"></textarea>
+                                            @error('alphaTabTex')
+                                                <span class="text-red-500 text-sm">{{ $message }}</span>
+                                            @enderror
+                                        </div>
+
+                                        <!-- Default Tempo, Volume, Time Signature -->
+                                        <div class="grid grid-cols-3 gap-4">
+                                            <div>
+                                                <label class="text-sm text-gray-700 dark:text-gray-300">Default
+                                                    Tempo</label>
+                                                <input wire:model.live="alphaTabTempo" type="number" min="40"
+                                                    max="240"
+                                                    class="mt-1 block w-full border rounded px-2 py-1 dark:bg-gray-600 dark:text-white text-sm">
                                             </div>
-                                            <div class="flex items-center space-x-2">
-                                                <label
-                                                    class="text-sm text-gray-700 dark:text-gray-300 w-16">Sound</label>
-                                                <select x-model="metronome.sound" @change="updateWidgets()"
-                                                    class="border rounded px-2 py-1 dark:bg-gray-600 dark:text-white text-sm">
-                                                    <option value="beep">Beep</option>
-                                                    <option value="click">Click</option>
-                                                    <option value="woodblock">Wood</option>
-                                                    <option value="pulse">Pulse</option>
-                                                </select>
+                                            <div>
+                                                <label class="text-sm text-gray-700 dark:text-gray-300">Default
+                                                    Volume</label>
+                                                <input wire:model.live="alphaTabVolume" type="range" min="0"
+                                                    max="1" step="0.01" class="mt-1 w-full">
+                                                <span class="text-xs">{{ intval($alphaTabVolume * 100) }}%</span>
                                             </div>
-                                            <div class="flex items-center space-x-2">
-                                                <label class="text-sm text-gray-700 dark:text-gray-300 w-16">Time
+                                            <div>
+                                                <label class="text-sm text-gray-700 dark:text-gray-300">Default Time
                                                     Sig.</label>
-                                                <select x-model="metronome.time_signature" @change="updateWidgets()"
-                                                    class="border rounded px-2 py-1 dark:bg-gray-600 dark:text-white text-sm">
+                                                <select wire:model.live="alphaTabTimeSignature"
+                                                    class="mt-1 block w-full border rounded px-2 py-1 dark:bg-gray-600 dark:text-white text-sm">
                                                     <option value="2/4">2/4</option>
                                                     <option value="3/4">3/4</option>
                                                     <option value="4/4">4/4</option>
                                                     <option value="6/8">6/8</option>
                                                 </select>
                                             </div>
-                                            <div class="flex items-center space-x-2">
-                                                <label
-                                                    class="text-sm text-gray-700 dark:text-gray-300 w-16">Volume</label>
-                                                <input type="range" x-model.number="metronome.volume" min="0"
-                                                    max="1" step="0.01" @input="updateWidgets()"
-                                                    class="w-full h-2 bg-gray-200 rounded-lg dark:bg-gray-600">
-                                                <span class="text-xs w-10"
-                                                    x-text="Math.round(metronome.volume * 100) + '%'"></span>
-                                            </div>
                                         </div>
-                                    </template>
-
-                                    <!-- Finger Warm-up -->
-                                    <div class="flex items-center space-x-3 mb-3">
-                                        <input id="widget-finger-warmups" type="checkbox" @change="toggleFingerWarmup()"
-                                            :checked="finger?.note_type"
-                                            class="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-600">
-                                        <label for="widget-finger-warmups"
-                                            class="text-sm text-gray-700 dark:text-gray-300">Enable Finger
-                                            Warm‑up</label>
                                     </div>
-                                    <template x-if="finger">
-                                        <div class="pl-4 border-l-2 border-green-300 dark:border-green-500 space-y-3">
-                                            <div class="flex items-center space-x-2">
-                                                <label class="text-sm text-gray-700 dark:text-gray-300 w-20">Note
-                                                    Type</label>
-                                                <select x-model="finger.note_type" @change="updateWidgets()"
-                                                    class="border rounded px-2 py-1 dark:bg-gray-600 dark:text-white text-sm">
-                                                    <option value="quarter">Quarter</option>
-                                                    <option value="eighth">Eighth</option>
-                                                    <option value="sixteenth">16th</option>
-                                                    <option value="thirty-second">32nd</option>
-                                                </select>
-                                            </div>
-                                            <div class="flex items-center space-x-2">
-                                                <label
-                                                    class="text-sm text-gray-700 dark:text-gray-300 w-20">Pattern</label>
-                                                <select x-model="finger.pattern" @change="updateWidgets()"
-                                                    class="border rounded px-2 py-1 dark:bg-gray-600 dark:text-white text-sm">
-                                                    <option value="1-2-3-4">1‑2‑3‑4</option>
-                                                    <option value="1-4-2-3">1‑4‑2‑3</option>
-                                                    <option value="4-3-2-1">4‑3‑2‑1</option>
-                                                    <option value="1-3-2-4">1‑3‑2‑4</option>
-                                                    <option value="2-4-1-3">2‑4‑1‑3</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                    </template>
-                                </div>
+                                @endif
                             </div>
                             <div class="mt-4">
                                 <button type="submit"
@@ -201,8 +165,7 @@
                                                             <div>
                                                                 <label
                                                                     class="block text-sm font-medium text-gray-700 dark:text-gray-300">Name</label>
-                                                                <input wire:model="editingName" type="text"
-                                                                    required
+                                                                <input wire:model="editingName" type="text" required
                                                                     class="mt-1 block w-full border-gray-300 dark:border-gray-600 focus:ring-indigo-500 focus:border-indigo-500 rounded-md dark:bg-gray-600 dark:text-white">
                                                                 @error('editingName')
                                                                     <span
@@ -237,46 +200,79 @@
                                                                     class="text-red-500 text-sm">{{ $message }}</span>
                                                             @enderror
                                                         </div>
-                                                        {{-- Widget Settings (edit form) --}}
-                                                        <div x-data="activityWidgetSettings($wire, true)">
-                                                            <div class="mt-4 border-t pt-4">
-                                                                <h3
-                                                                    class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                                                                    Widget Settings</h3>
+                                                        {{-- AlphaTab Exercise Settings --}}
+                                                        <div class="mt-4 border-t pt-4">
+                                                            <h3
+                                                                class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                                                                AlphaTab Exercise</h3>
 
-                                                                <!-- Metronome -->
-                                                                <div class="flex items-center space-x-3 mb-3">
-                                                                    <input type="checkbox" @change="toggleMetronome()"
-                                                                        :checked="metronome?.tempo"
-                                                                        class="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-600">
-                                                                    <label
-                                                                        class="text-sm text-gray-700 dark:text-gray-300">Enable
-                                                                        Metronome</label>
-                                                                </div>
-                                                                <template x-if="metronome">
-                                                                    <div
-                                                                        class="pl-4 border-l-2 border-blue-300 dark:border-blue-500 space-y-3 mb-4">
-                                                                        <!-- fields identical to create form -->
-                                                                    </div>
-                                                                </template>
-
-                                                                <!-- Finger Warm-up -->
-                                                                <div class="flex items-center space-x-3 mb-3">
-                                                                    <input type="checkbox"
-                                                                        @change="toggleFingerWarmup()"
-                                                                        :checked="finger?.note_type"
-                                                                        class="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-600">
-                                                                    <label
-                                                                        class="text-sm text-gray-700 dark:text-gray-300">Enable
-                                                                        Finger Warm‑up</label>
-                                                                </div>
-                                                                <template x-if="finger">
-                                                                    <div
-                                                                        class="pl-4 border-l-2 border-green-300 dark:border-green-500 space-y-3">
-                                                                        <!-- fields identical to create form -->
-                                                                    </div>
-                                                                </template>
+                                                            <div class="flex items-center space-x-3 mb-3">
+                                                                <input type="checkbox"
+                                                                    wire:model.live="enableAlphaTab"
+                                                                    id="enableAlphaTab"
+                                                                    class="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-600">
+                                                                <label for="enableAlphaTab"
+                                                                    class="text-sm text-gray-700 dark:text-gray-300">Enable
+                                                                    AlphaTab Exercise</label>
                                                             </div>
+
+                                                            @if ($enableAlphaTab)
+                                                                <div
+                                                                    class="pl-4 border-l-2 border-purple-300 dark:border-purple-500 space-y-4">
+                                                                    <!-- alphaTex editor -->
+                                                                    <div>
+                                                                        <label
+                                                                            class="text-sm text-gray-700 dark:text-gray-300">alphaTex
+                                                                            Code</label>
+                                                                        <textarea wire:model.live="alphaTabTex" rows="6"
+                                                                            class="mt-1 block w-full border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-600 dark:text-white text-sm font-mono"
+                                                                            placeholder="\tuning E4 B3 G3 D3 A2 E2
+\staff{score tabs}
+:8 1.6 2.6 3.6 4.6 | 1.6 2.6 3.6 4.6"></textarea>
+                                                                        @error('alphaTabTex')
+                                                                            <span
+                                                                                class="text-red-500 text-sm">{{ $message }}</span>
+                                                                        @enderror
+                                                                    </div>
+
+                                                                    <!-- Default Tempo, Volume, Time Signature -->
+                                                                    <div class="grid grid-cols-3 gap-4">
+                                                                        <div>
+                                                                            <label
+                                                                                class="text-sm text-gray-700 dark:text-gray-300">Default
+                                                                                Tempo</label>
+                                                                            <input wire:model.live="alphaTabTempo"
+                                                                                type="number" min="40"
+                                                                                max="240"
+                                                                                class="mt-1 block w-full border rounded px-2 py-1 dark:bg-gray-600 dark:text-white text-sm">
+                                                                        </div>
+                                                                        <div>
+                                                                            <label
+                                                                                class="text-sm text-gray-700 dark:text-gray-300">Default
+                                                                                Volume</label>
+                                                                            <input wire:model.live="alphaTabVolume"
+                                                                                type="range" min="0"
+                                                                                max="1" step="0.01"
+                                                                                class="mt-1 w-full">
+                                                                            <span
+                                                                                class="text-xs">{{ intval($alphaTabVolume * 100) }}%</span>
+                                                                        </div>
+                                                                        <div>
+                                                                            <label
+                                                                                class="text-sm text-gray-700 dark:text-gray-300">Default
+                                                                                Time Sig.</label>
+                                                                            <select
+                                                                                wire:model.live="alphaTabTimeSignature"
+                                                                                class="mt-1 block w-full border rounded px-2 py-1 dark:bg-gray-600 dark:text-white text-sm">
+                                                                                <option value="2/4">2/4</option>
+                                                                                <option value="3/4">3/4</option>
+                                                                                <option value="4/4">4/4</option>
+                                                                                <option value="6/8">6/8</option>
+                                                                            </select>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            @endif
                                                         </div>
                                                         <div class="mt-4 flex space-x-2">
                                                             <button type="submit"

@@ -4,26 +4,19 @@ window.timerComponentData = function ($wire) {
         secondsRemaining: 0,
         interval: null,
 
-        hasMetronome: $wire.entangle('hasMetronome'),
-        duration: $wire.entangle('timerDuration'),
-        tempo: $wire.entangle('widgetTempo'),
-        sound: $wire.entangle('widgetSound'),
-        volume: $wire.entangle('widgetVolume'),
-        timeSignature: $wire.entangle('widgetTimeSignature'),
-
-        hasFingerWarmup: $wire.entangle('hasFingerWarmup'),
-        fingerWarmupNoteType: $wire.entangle('fingerWarmupNoteType'),
-        fingerWarmupPattern: $wire.entangle('fingerWarmupPattern'),
-        fingerPatternArray: [],
-        fingerPosition: 0,
-        fingerWarmupInterval: null,
+        hasAlphaTab: $wire.entangle('hasAlphaTab'),
+        alphaTabTex: $wire.entangle('alphaTabTex'),
+        alphaTabTempo: $wire.entangle('alphaTabTempo'),
+        alphaTabVolume: $wire.entangle('alphaTabVolume'),
+        alphaTabTimeSignature: $wire.entangle('alphaTabTimeSignature'),
 
         showCountdown: false,
         countdownNumber: 3,
 
         init() {
-            this.secondsRemaining = this.duration * 60;
-            if (this.hasMetronome) {
+            this.secondsRemaining = this.timerActive ? this.$wire.get('timerDuration') * 60 : 0;
+
+            if (this.hasAlphaTab) {
                 this.startCountdown();
             } else {
                 this.startTimers();
@@ -33,38 +26,24 @@ window.timerComponentData = function ($wire) {
                 this.cleanUp();
             });
 
-            // Watchers for settings that require restarting alphaTab
-            this.$watch('tempo', () => {
-                if (this.hasFingerWarmup) this.restartAlphaTab();
+            this.$watch('alphaTabTempo', () => {
+                if (this.hasAlphaTab) this.restartAlphaTab();
             });
-            this.$watch('timeSignature', () => {
-                if (this.hasFingerWarmup) this.restartAlphaTab();
+            this.$watch('alphaTabTimeSignature', () => {
+                if (this.hasAlphaTab) this.restartAlphaTab();
             });
-            this.$watch('fingerWarmupNoteType', () => {
-                if (this.hasFingerWarmup) this.restartAlphaTab();
-            });
-            this.$watch('fingerWarmupPattern', () => {
-                if (this.hasFingerWarmup) this.restartAlphaTab();
-            });
-
-            // Volume changes can be applied directly without restart
-            this.$watch('volume', (vol) => {
-                if (window.fingerWarmup && window.fingerWarmup.setVolume) {
-                    window.fingerWarmup.setVolume(vol);
-                }
+            this.$watch('alphaTabVolume', (vol) => {
+                if (window.alphaTabEngine) window.alphaTabEngine.setVolume(vol);
             });
         },
 
-        // ── Countdown (visual only) ────────────────────
         startCountdown() {
             if (this.showCountdown) return;
             this.showCountdown = true;
             this.countdownNumber = 3;
             let cd = setInterval(() => {
                 this.countdownNumber--;
-                if (this.countdownNumber > 0) {
-                    // no beep – just visual
-                } else {
+                if (this.countdownNumber <= 0) {
                     clearInterval(cd);
                     this.showCountdown = false;
                     this.startTimers();
@@ -72,7 +51,6 @@ window.timerComponentData = function ($wire) {
             }, 1000);
         },
 
-        // ── Timer + Widget start ──────────────────────
         startTimers() {
             this.clearIntervals();
             this.interval = setInterval(() => {
@@ -83,27 +61,27 @@ window.timerComponentData = function ($wire) {
                 }
             }, 1000);
 
-            if (this.hasFingerWarmup) {
+            if (this.hasAlphaTab) {
                 const settings = {
-                    pattern: this.fingerWarmupPattern,
-                    noteType: this.fingerWarmupNoteType,
-                    tempo: this.tempo,
-                    timeSignature: this.timeSignature,
-                    volume: this.volume,
+                    tex: this.alphaTabTex,
+                    tempo: this.alphaTabTempo,
+                    volume: this.alphaTabVolume,
+                    timeSignature: this.alphaTabTimeSignature,
                 };
-                window.fingerWarmup.init('#finger-warmup-container', settings);
+                window.alphaTabEngine.init('#alphaTab-container', settings);
             }
         },
 
-        // ── Stop & cleanup ─────────────────────────────
         stopTimer() {
             this.$wire.stopTimer();
         },
+
         cleanUp() {
             this.clearIntervals();
-            if (window.fingerWarmup) window.fingerWarmup.stop();
+            if (window.alphaTabEngine) window.alphaTabEngine.destroy();
             this.timerActive = false;
         },
+
         clearIntervals() {
             if (this.interval) {
                 clearInterval(this.interval);
@@ -111,17 +89,15 @@ window.timerComponentData = function ($wire) {
             }
         },
 
-        // ── Restart alphaTab on setting change ────────
         restartAlphaTab() {
-            if (!this.hasFingerWarmup) return;
+            if (!this.hasAlphaTab) return;
             const settings = {
-                pattern: this.fingerWarmupPattern,
-                noteType: this.fingerWarmupNoteType,
-                tempo: this.tempo,
-                timeSignature: this.timeSignature,
-                volume: this.volume,
+                tex: this.alphaTabTex,
+                tempo: this.alphaTabTempo,
+                volume: this.alphaTabVolume,
+                timeSignature: this.alphaTabTimeSignature,
             };
-            window.fingerWarmup.updateSettings(settings);
-        }
+            window.alphaTabEngine.init('#alphaTab-container', settings);
+        },
     };
 };
