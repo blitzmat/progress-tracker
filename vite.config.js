@@ -8,7 +8,7 @@ export default defineConfig({
                 'resources/css/app.css',
                 'resources/js/app.js',
                 'resources/js/timer-component.js',
-                'resources/js/alpha-tab.js',
+                'resources/js/alpha-tab-engine.js',
                 'resources/js/activity-widget-settings.js',
             ],
             refresh: true,
@@ -18,7 +18,7 @@ export default defineConfig({
         exclude: ['@coderline/alphatab'],   // ← exclude alphaTab from pre-bundling
     },
     build: {
-        chunkSizeWarningLimit: 1000, // increase to 1 MB (optional, stops the warning)
+        chunkSizeWarningLimit: 1300, // increase to 1 MB (optional, stops the warning)
         rollupOptions: {
             output: {
                 manualChunks(id) {

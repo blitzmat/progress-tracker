@@ -7,7 +7,7 @@
 .phpunit.result.cache
 /.codex
 /.cursor/
-/.ddev
+/.ddev/.initialized
 /.idea
 /.nova
 /.phpunit.cache

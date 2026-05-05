@@ -1,8 +1,14 @@
-import * as alphaTab from '@coderline/alphatab';
-
 let api = null;
 let containerEl = null;
 let isActive = false;
+let alphaTabModule = null;
+
+async function getAlphaTab() {
+    if (!alphaTabModule) {
+        alphaTabModule = await import('@coderline/alphatab');
+    }
+    return alphaTabModule;
+}
 
 async function waitForPlayerReady() {
     return new Promise((resolve) => {
@@ -32,6 +38,8 @@ async function initAlphaTab(containerSelector, settings) {
     const fullTex = `\\tempo ${tempo}\n\\ts ${timeSignature.replace('/', ' ')}\n${tex}`;
     const fontDir = window.location.origin + '/font/';
     const soundFont = window.location.origin + '/font/sonivox.sf2';
+
+    const alphaTab = await getAlphaTab();   // ← dynamic import
 
     api = new alphaTab.AlphaTabApi(containerEl, {
         core: { useWorkers: false },
@@ -74,8 +82,8 @@ function setVolume(vol) {
     if (api) api.metronomeVolume = vol;
 }
 
-function updateSettings(settings) {
-    initAlphaTab('#alphaTab-container', settings);
+async function updateSettings(settings) {
+    await initAlphaTab('#alphaTab-container', settings);
 }
 
 window.alphaTabEngine = {
