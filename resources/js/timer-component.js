@@ -1,5 +1,7 @@
 window.timerComponentData = function ($wire) {
     return {
+        initialized: false,
+
         timerActive: true,
         secondsRemaining: 0,
         interval: null,
@@ -7,54 +9,77 @@ window.timerComponentData = function ($wire) {
         hasAlphaTab: $wire.entangle('hasAlphaTab'),
         alphaTabTex: $wire.entangle('alphaTabTex'),
         alphaTabTempo: $wire.entangle('alphaTabTempo'),
-        alphaTabVolume: $wire.entangle('alphaTabVolume'),
         alphaTabTimeSignature: $wire.entangle('alphaTabTimeSignature'),
 
         showCountdown: false,
         countdownNumber: 3,
 
+        hasRenderedAlphaTab: false,
+        initialSettings: {},
+
         init() {
-            this.secondsRemaining = this.timerActive ? this.$wire.get('timerDuration') * 60 : 0;
+            if (this.initialized) return;
+            this.initialized = true;
+
+            console.log('INIT RUNNING');
+
+            this.secondsRemaining = this.$wire.get('timerDuration') * 60 || 0;
 
             if (this.hasAlphaTab) {
-                this.startCountdown();
+                this.renderAlphaTab();   // 👈 render immediately
+                this.startCountdown();   // 👈 delay playback only
             } else {
                 this.startTimers();
             }
 
-            this.$wire.$on('stop-timer', () => {
-                this.cleanUp();
-            });
-
-            this.$watch('alphaTabTempo', () => {
-                if (this.hasAlphaTab) this.restartAlphaTab();
-            });
-            this.$watch('alphaTabTimeSignature', () => {
-                if (this.hasAlphaTab) this.restartAlphaTab();
-            });
-            this.$watch('alphaTabVolume', (vol) => {
-                if (window.alphaTabEngine) window.alphaTabEngine.setVolume(vol);
-            });
+            this.$wire.$on('stop-timer', () => this.cleanUp());
         },
 
+        renderAlphaTab() {
+            if (this.hasRenderedAlphaTab) return;
+
+            this.hasRenderedAlphaTab = true;
+
+            this.initialSettings = {
+                tex: this.alphaTabTex,
+                tempo: this.alphaTabTempo,
+                timeSignature: this.alphaTabTimeSignature,
+            };
+
+            console.log('CALLING RENDER');
+
+            window.alphaTabEngine
+                .render('#alphaTab-container', this.initialSettings)
+                .then(() => {
+                    console.log('RENDER DONE');
+                });
+        },
+
+        // ── Countdown ─────────────────
         startCountdown() {
             if (this.showCountdown) return;
             this.showCountdown = true;
             this.countdownNumber = 3;
-            let cd = setInterval(() => {
+
+            const cd = setInterval(() => {
                 this.countdownNumber--;
+
                 if (this.countdownNumber <= 0) {
                     clearInterval(cd);
                     this.showCountdown = false;
+
                     this.startTimers();
                 }
             }, 1000);
         },
 
+        // ── Timer + playback ──────────
         startTimers() {
-            this.clearIntervals();
+            console.log('START TIMERS');
+
             this.interval = setInterval(() => {
                 this.secondsRemaining--;
+
                 if (this.secondsRemaining <= 0) {
                     this.cleanUp();
                     this.$wire.dispatch('timer-completed');
@@ -62,13 +87,8 @@ window.timerComponentData = function ($wire) {
             }, 1000);
 
             if (this.hasAlphaTab) {
-                const settings = {
-                    tex: this.alphaTabTex,
-                    tempo: this.alphaTabTempo,
-                    volume: this.alphaTabVolume,
-                    timeSignature: this.alphaTabTimeSignature,
-                };
-                window.alphaTabEngine.init('#alphaTab-container', settings);
+                console.log('PLAYING ALPHATAB');
+                window.alphaTabEngine.play();
             }
         },
 
@@ -77,27 +97,15 @@ window.timerComponentData = function ($wire) {
         },
 
         cleanUp() {
-            this.clearIntervals();
-            if (window.alphaTabEngine) window.alphaTabEngine.destroy();
-            this.timerActive = false;
-        },
-
-        clearIntervals() {
             if (this.interval) {
                 clearInterval(this.interval);
                 this.interval = null;
             }
-        },
 
-        restartAlphaTab() {
-            if (!this.hasAlphaTab) return;
-            const settings = {
-                tex: this.alphaTabTex,
-                tempo: this.alphaTabTempo,
-                volume: this.alphaTabVolume,
-                timeSignature: this.alphaTabTimeSignature,
-            };
-            window.alphaTabEngine.init('#alphaTab-container', settings);
+            window.alphaTabEngine.stop();
+            window.alphaTabEngine.destroy();
+
+            this.timerActive = false;
         },
     };
 };

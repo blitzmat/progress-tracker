@@ -12,7 +12,7 @@
                 </div>
             @endif
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div class="grid grid-cols-1 gap-8">
                 {{-- Left Column: Practice Timer --}}
                 <div class="lg:col-span-1">
                     @if (!$timerActive)
@@ -93,78 +93,91 @@
                         </div>
                     @else
                         {{-- Active Timer --}}
-                        <div x-data="timerComponentData($wire)" wire:ignore>
-                            <div
-                                class="bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700 p-6 h-full">
-                                <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Practice Timer
-                                </h2>
-                                <div class="text-center">
-                                    <div class="mb-6">
-                                        <div class="text-4xl font-bold text-blue-600 dark:text-blue-400 mb-2"
-                                            x-text="Math.floor(secondsRemaining / 60) + ':' + (secondsRemaining % 60).toString().padStart(2, '0')">
+                        <div wire:ignore>
+                            <div x-data="timerComponentData($wire)" x-init="init()">
+                                {{-- Pre‑declare essential properties --}}
+                                <div
+                                    class="bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700 p-6 h-full">
+                                    <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Practice Timer
+                                    </h2>
+                                    <div class="text-center">
+                                        <div class="mb-6">
+                                            <div class="text-4xl font-bold text-blue-600 dark:text-blue-400 mb-2"
+                                                x-text="Math.floor(secondsRemaining / 60) + ':' + (secondsRemaining % 60).toString().padStart(2, '0')">
+                                            </div>
+                                            <p class="text-sm text-gray-600 dark:text-gray-400">Time remaining</p>
                                         </div>
-                                        <p class="text-sm text-gray-600 dark:text-gray-400">Time remaining</p>
-                                    </div>
-                                    <div class="mb-6 p-4 bg-white dark:bg-gray-700 rounded-lg">
-                                        <p class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Current
-                                            Session:</p>
-                                        @php $currentActivity = $activities->firstWhere('id', $selectedActivityForTimer); @endphp
-                                        <p class="text-lg text-blue-600 dark:text-blue-400 font-semibold">
-                                            {{ $currentActivity ? $currentActivity->name : 'Loading...' }}
-                                        </p>
-                                        @if ($timerNotes)
-                                            <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">
-                                                "{{ $timerNotes }}"</p>
-                                        @endif
-                                    </div>
+                                        <div class="mb-6 p-4 bg-white dark:bg-gray-700 rounded-lg">
+                                            <p class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Current
+                                                Session:</p>
+                                            @php $currentActivity = $activities->firstWhere('id', $selectedActivityForTimer); @endphp
+                                            <p class="text-lg text-blue-600 dark:text-blue-400 font-semibold">
+                                                {{ $currentActivity ? $currentActivity->name : 'Loading...' }}
+                                            </p>
+                                            @if ($timerNotes)
+                                                <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">
+                                                    "{{ $timerNotes }}"</p>
+                                            @endif
+                                        </div>
 
-                                    {{-- AlphaTab container --}}
-                                    @if ($hasAlphaTab)
-                                        <div
-                                            class="mt-4 border-t pt-4 border-purple-200 dark:border-purple-700 text-left">
-                                            <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                                                AlphaTab Exercise</h3>
-                                            <div id="alphaTab-container" class="w-full min-h-[150px]"></div>
-                                            {{-- Inline controls (can adjust during session) --}}
-                                            <div class="mt-3 grid grid-cols-3 gap-2">
-                                                <div>
-                                                    <label class="text-xs text-gray-500">Tempo</label>
-                                                    <input wire:model.live="alphaTabTempo" type="number" min="40"
-                                                        max="240"
-                                                        class="w-full border rounded px-2 py-1 dark:bg-gray-600 dark:text-white text-sm">
+                                        {{-- AlphaTab container --}}
+                                        @if ($hasAlphaTab)
+                                            <div
+                                                class="mt-4 border-t pt-4 border-purple-200 dark:border-purple-700 text-left">
+                                                <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                                                    AlphaTab Exercise</h3>
+                                                <div wire:ignore id="alphaTab-container"
+                                                    class="w-full relative overflow-x-auto h-full max-h-min bg-white">
                                                 </div>
-                                                <div>
-                                                    <label class="text-xs text-gray-500">Volume</label>
-                                                    <input wire:model.live="alphaTabVolume" type="range"
-                                                        min="0" max="1" step="0.01" class="w-full">
-                                                </div>
-                                                <div>
-                                                    <label class="text-xs text-gray-500">Time Sig.</label>
-                                                    <select wire:model.live="alphaTabTimeSignature"
-                                                        class="w-full border rounded px-2 py-1 dark:bg-gray-600 dark:text-white text-sm">
-                                                        <option value="2/4">2/4</option>
-                                                        <option value="3/4">3/4</option>
-                                                        <option value="4/4">4/4</option>
-                                                        <option value="6/8">6/8</option>
-                                                    </select>
+                                                {{-- Inline controls (can adjust during session) --}}
+                                                <div class="mt-3 grid grid-cols-3 gap-2">
+                                                    <div>
+                                                        <label class="text-xs text-gray-500">Tempo</label>
+                                                        <input wire:model.live="alphaTabTempo" type="number"
+                                                            min="40" max="240"
+                                                            class="w-full border rounded px-2 py-1 dark:bg-gray-600 dark:text-white text-sm">
+                                                    </div>
+                                                    <div>
+                                                        <label class="text-xs text-gray-500">Volume</label>
+                                                        <input wire:model.live="alphaTabVolume" type="range"
+                                                            min="0" max="1" step="0.01" class="w-full">
+                                                    </div>
+                                                    <div>
+                                                        <label class="text-xs text-gray-500">Time Sig.</label>
+                                                        <select wire:model.live="alphaTabTimeSignature"
+                                                            class="w-full border rounded px-2 py-1 dark:bg-gray-600 dark:text-white text-sm">
+                                                            <option value="2/4">2/4</option>
+                                                            <option value="3/4">3/4</option>
+                                                            <option value="4/4">4/4</option>
+                                                            <option value="6/8">6/8</option>
+                                                        </select>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    @endif
+                                        @endif
 
-                                    <button @click="stopTimer()"
-                                        class="w-full mt-4 px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 font-medium">
-                                        Stop Timer
-                                    </button>
+                                        <button @click="stopTimer()"
+                                            class="w-full mt-4 px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 font-medium">
+                                            Stop Timer
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
 
-                            {{-- Countdown Overlay --}}
-                            <div x-show="showCountdown" x-cloak
-                                class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
-                                <div class="text-center">
-                                    <div x-text="countdownNumber" class="text-8xl font-bold text-white"></div>
-                                    <div x-show="countdownNumber === 0" class="text-3xl font-bold text-white">Go!</div>
+                                {{-- Countdown Overlay --}}
+                                <div x-data="{ showCountdown: false, countdownNumber: 3 }" x-init="$watch('$root.showCountdown', value => showCountdown = value);
+                                $watch('$root.countdownNumber', value => countdownNumber = value)">
+
+                                    <div x-show="showCountdown" x-cloak
+                                        class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+
+                                        <div class="text-center">
+                                            <div x-text="countdownNumber" class="text-8xl font-bold text-white"></div>
+
+                                            <div x-show="countdownNumber === 0" class="text-3xl font-bold text-white">
+                                                Go!
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -252,6 +265,4 @@
         </div>
     @endif
 
-    <audio id="notification-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-alarm-digital-clock-beep-989.mp3"
-        preload="auto"></audio>
 </div>

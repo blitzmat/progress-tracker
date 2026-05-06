@@ -1,7 +1,7 @@
 let api = null;
 let containerEl = null;
-let isActive = false;
 let alphaTabModule = null;
+let rendered = false;
 
 async function getAlphaTab() {
     if (!alphaTabModule) {
@@ -10,36 +10,26 @@ async function getAlphaTab() {
     return alphaTabModule;
 }
 
-async function waitForPlayerReady() {
-    return new Promise((resolve) => {
-        const check = () => {
-            if (api && api.player && api.player.isReady) {
-                resolve();
-            } else {
-                setTimeout(check, 100);
-            }
-        };
-        check();
-    });
-}
-
-async function initAlphaTab(containerSelector, settings) {
-    const { tex, tempo, volume, timeSignature } = settings;
-
+async function render(containerSelector, settings) {
     if (api) {
-        api.stop();
-        api.destroy();
-        api = null;
+        console.log('Already initialized, skipping render');
+        return;
     }
+    console.log('RENDER CALLED');
+    const { tex, tempo, timeSignature } = settings;
+
+    const fullTex = `
+\\tempo ${tempo}
+\\ts ${timeSignature.replace('/', ' ')}
+${tex}
+    `;
 
     containerEl = document.querySelector(containerSelector);
+    if (!containerEl) return;
+
     containerEl.innerHTML = '';
 
-    const fullTex = `\\tempo ${tempo}\n\\ts ${timeSignature.replace('/', ' ')}\n${tex}`;
-    const fontDir = window.location.origin + '/font/';
-    const soundFont = window.location.origin + '/font/sonivox.sf2';
-
-    const alphaTab = await getAlphaTab();   // ← dynamic import
+    const alphaTab = await getAlphaTab();
 
     api = new alphaTab.AlphaTabApi(containerEl, {
         core: { useWorkers: false },
@@ -50,46 +40,62 @@ async function initAlphaTab(containerSelector, settings) {
         player: {
             enablePlayer: true,
             enableCursor: true,
-            soundFont: soundFont,
+            soundFont: '/font/sonivox.sf2', // 🔊 REQUIRED
         },
-        fontDirectory: fontDir,
+        fontDirectory: '/font/',
     });
 
-    if (typeof api.tex === 'function') {
-        api.tex(fullTex);
-    } else {
-        api.render();
+    await api.ready;
+
+    api.tex(fullTex);
+
+    rendered = true;
+}
+
+function play() {
+    if (!api) return;
+
+    // 🧨 Prevent double playback
+    if (api.isPlaying) {
+        console.log('Already playing, skipping...');
+        return;
     }
 
-    await waitForPlayerReady();
+    // 🧹 Always reset before play (prevents overlap)
+    try {
+        api.stop();
+    } catch (e) { }
 
-    api.metronomeVolume = volume ?? 0.5;
+    console.log('START PLAYBACK');
+
     api.play();
-    isActive = true;
+}
+
+function pause() {
+    if (api) {
+        api.pause();
+    }
+}
+
+function stop() {
+    if (api) {
+        api.stop();
+    }
 }
 
 function destroy() {
+    rendered = false;
+
     if (api) {
-        api.stop();
-        api.destroy();
+        try { api.destroy(); } catch (e) { }
         api = null;
     }
-    containerEl = null;
-    isActive = false;
-}
-
-function setVolume(vol) {
-    if (api) api.metronomeVolume = vol;
-}
-
-async function updateSettings(settings) {
-    await initAlphaTab('#alphaTab-container', settings);
 }
 
 window.alphaTabEngine = {
-    init: initAlphaTab,
+    render,
+    play,
+    pause,
+    stop,
     destroy,
-    setVolume,
-    updateSettings,
-    isActive: () => isActive,
 };
