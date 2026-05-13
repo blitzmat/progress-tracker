@@ -125,20 +125,18 @@ class GuitarWarmupExercisesSeeder extends Seeder
 
     private function chromaticTex(): string
     {
-        $strings = [6, 5, 4, 3, 2, 1];
-        $frets = [1, 2, 3, 4];
-
         $notes = [];
-
-        foreach ($strings as $s) {
-            foreach ($frets as $f) {
-                $notes[] = "$f.$s";
+        foreach ([6, 5, 4, 3, 2, 1] as $string) {
+            foreach ([1, 2, 3, 4] as $fret) {
+                $notes[] = "$fret.$string";
             }
         }
 
-        $bar = implode(' ', $notes);
+        // Divide the 24 notes into bars of 8 eighth notes (4/4)
+        $bars = array_chunk($notes, 8);
+        $barLines = array_map(fn($chunk) => ':8 ' . implode(' ', $chunk), $bars);
 
-        return ":8 {$bar} |{$bar} |{$bar} |{$bar}";
+        return implode(" |\n", $barLines) . ' |';
     }
 
     private function spiderTex(): string
