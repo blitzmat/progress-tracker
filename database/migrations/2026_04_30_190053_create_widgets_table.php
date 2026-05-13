@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('widgets', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('activity_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('entry_id')->constrained()->cascadeOnDelete();
             $table->string('type');
             $table->string('label')->nullable();
             $table->json('settings')->nullable();

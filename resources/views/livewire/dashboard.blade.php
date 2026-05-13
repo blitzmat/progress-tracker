@@ -52,7 +52,7 @@
                                     <label
                                         class="block text-sm font-medium text-gray-700 dark:text-gray-300">Notes</label>
                                     <textarea wire:model="timerNotes" rows="3" placeholder="What are you working on?"
-                                        class="mt-1 block w-full border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-600 dark:text-white"></textarea>
+                                        class="mt-1 block w-full border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-600 dark:text-white">{{ e($timerNotes) }}</textarea>
                                 </div>
 
                                 {{-- AlphaTab playback controls (shown only if activity has alphaTab) --}}
@@ -126,8 +126,12 @@
                                                 class="mt-4 border-t pt-4 border-purple-200 dark:border-purple-700 text-left">
                                                 <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                                                     AlphaTab Exercise</h3>
-                                                <div wire:ignore id="alphaTab-container"
-                                                    class="w-full relative overflow-x-auto h-full max-h-min bg-white">
+                                                <div class="at-wrap">
+                                                    <div class="at-viewport">
+                                                        <div wire:ignore id="alphaTab-container"
+                                                            class="w-full relative overflow-x-auto h-full max-h-min min-h-[200px] bg-white">
+                                                        </div>
+                                                    </div>
                                                 </div>
                                                 {{-- Inline controls (can adjust during session) --}}
                                                 <div class="mt-3 grid grid-cols-3 gap-2">

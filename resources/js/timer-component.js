@@ -1,7 +1,5 @@
 window.timerComponentData = function ($wire) {
     return {
-        initialized: false,
-
         timerActive: true,
         secondsRemaining: 0,
         interval: null,
@@ -9,53 +7,46 @@ window.timerComponentData = function ($wire) {
         hasAlphaTab: $wire.entangle('hasAlphaTab'),
         alphaTabTex: $wire.entangle('alphaTabTex'),
         alphaTabTempo: $wire.entangle('alphaTabTempo'),
+        alphaTabVolume: $wire.entangle('alphaTabVolume'),
         alphaTabTimeSignature: $wire.entangle('alphaTabTimeSignature'),
 
         showCountdown: false,
         countdownNumber: 3,
-
         hasRenderedAlphaTab: false,
-        initialSettings: {},
 
         init() {
             if (this.initialized) return;
             this.initialized = true;
 
-            console.log('INIT RUNNING');
-
             this.secondsRemaining = this.$wire.get('timerDuration') * 60 || 0;
 
             if (this.hasAlphaTab) {
-                this.renderAlphaTab();   // 👈 render immediately
-                this.startCountdown();   // 👈 delay playback only
+                this.startCountdown();
             } else {
                 this.startTimers();
             }
 
             this.$wire.$on('stop-timer', () => this.cleanUp());
+
+            this.$watch('alphaTabTempo', value => {
+                const api = window.alphaTabEngine?.api;
+                if (api) api.playbackSpeed = value / 120;
+            });
+
+            this.$watch('alphaTabVolume', value => {
+                const api = window.alphaTabEngine?.api;
+                if (api) api.masterVolume = value;
+            });
+
+            this.$watch('alphaTabTex', () => {
+                if (this.hasAlphaTab) {
+                    this.hasRenderedAlphaTab = false;
+                    window.alphaTabEngine.destroy();
+                    this.startTimers();
+                }
+            });
         },
 
-        renderAlphaTab() {
-            if (this.hasRenderedAlphaTab) return;
-
-            this.hasRenderedAlphaTab = true;
-
-            this.initialSettings = {
-                tex: this.alphaTabTex,
-                tempo: this.alphaTabTempo,
-                timeSignature: this.alphaTabTimeSignature,
-            };
-
-            console.log('CALLING RENDER');
-
-            window.alphaTabEngine
-                .render('#alphaTab-container', this.initialSettings)
-                .then(() => {
-                    console.log('RENDER DONE');
-                });
-        },
-
-        // ── Countdown ─────────────────
         startCountdown() {
             if (this.showCountdown) return;
             this.showCountdown = true;
@@ -63,32 +54,38 @@ window.timerComponentData = function ($wire) {
 
             const cd = setInterval(() => {
                 this.countdownNumber--;
-
                 if (this.countdownNumber <= 0) {
                     clearInterval(cd);
                     this.showCountdown = false;
-
                     this.startTimers();
                 }
             }, 1000);
         },
 
-        // ── Timer + playback ──────────
         startTimers() {
-            console.log('START TIMERS');
+            this.clearIntervals();
 
             this.interval = setInterval(() => {
                 this.secondsRemaining--;
-
                 if (this.secondsRemaining <= 0) {
                     this.cleanUp();
                     this.$wire.dispatch('timer-completed');
                 }
             }, 1000);
 
-            if (this.hasAlphaTab) {
-                console.log('PLAYING ALPHATAB');
-                window.alphaTabEngine.play();
+            if (this.hasAlphaTab && !this.hasRenderedAlphaTab) {
+                this.hasRenderedAlphaTab = true;
+
+                const settings = {
+                    tex: this.alphaTabTex,
+                    tempo: this.alphaTabTempo,
+                    volume: this.alphaTabVolume,
+                    timeSignature: this.alphaTabTimeSignature,
+                };
+
+                window.alphaTabEngine.render('#alphaTab-container', settings).then(() => {
+                    window.alphaTabEngine.playOnce(this.alphaTabVolume);
+                });
             }
         },
 
@@ -97,15 +94,25 @@ window.timerComponentData = function ($wire) {
         },
 
         cleanUp() {
+            this.clearIntervals();
+            const api = window.alphaTabEngine?.api;
+            if (api) {
+                api.pause();
+                api.destroy();
+            }
+            window.alphaTabEngine.destroy();
+            this.timerActive = false;
+        },
+
+        clearIntervals() {
             if (this.interval) {
                 clearInterval(this.interval);
                 this.interval = null;
             }
+        },
 
-            window.alphaTabEngine.stop();
-            window.alphaTabEngine.destroy();
-
-            this.timerActive = false;
+        destroy() {
+            this.cleanUp();
         },
     };
 };

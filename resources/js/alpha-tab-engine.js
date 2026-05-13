@@ -1,101 +1,98 @@
-let api = null;
-let containerEl = null;
-let alphaTabModule = null;
-let rendered = false;
+import * as alphaTab from '@coderline/alphatab';
 
-async function getAlphaTab() {
-    if (!alphaTabModule) {
-        alphaTabModule = await import('@coderline/alphatab');
-    }
-    return alphaTabModule;
-}
+console.log('alphaTabEngine loaded');
 
-async function render(containerSelector, settings) {
-    if (api) {
-        console.log('Already initialized, skipping render');
-        return;
-    }
-    console.log('RENDER CALLED');
-    const { tex, tempo, timeSignature } = settings;
+const engine = {
+    api: null,
+    _playRequested: false,   // prevents duplicate play calls
 
-    const fullTex = `
-\\tempo ${tempo}
-\\ts ${timeSignature.replace('/', ' ')}
-${tex}
-    `;
+    async render(container, settings) {
+        console.log('RENDER CALLED');
 
-    containerEl = document.querySelector(containerSelector);
-    if (!containerEl) return;
+        const tex = `\\tempo ${settings.tempo} \\track "Guitar" \\staff \\ts ${settings.timeSignature.replace('/', ' ')} ${settings.tex}`;
 
-    containerEl.innerHTML = '';
+        // destroy old instance completely
+        if (this.api) {
+            this.api.destroy();
+            this.api = null;
+            this._playRequested = false;
+        }
 
-    const alphaTab = await getAlphaTab();
+        const containerEl = document.querySelector(container);
+        if (!containerEl) return;
 
-    api = new alphaTab.AlphaTabApi(containerEl, {
-        core: { useWorkers: false },
-        display: {
-            staveProfile: 'Default',
-            layoutMode: 'Horizontal',
-        },
-        player: {
-            enablePlayer: true,
-            enableCursor: true,
-            soundFont: '/font/sonivox.sf2', // 🔊 REQUIRED
-        },
-        fontDirectory: '/font/',
-    });
+        this.api = new alphaTab.AlphaTabApi(containerEl, {
+            core: {
+                engine: 'html5',            // required for audio
+            },
+            display: {
+                layoutMode: 'Horizontal',
+                staveProfile: 'Default',
+            },
+            player: {
+                enablePlayer: true,
+                enableCursor: true,
+                soundFont: '/font/sonivox.sf2',
+                scrollElement: containerEl,   // ← this makes the cursor move
+            },
+            fontDirectory: window.location.origin + '/font/',
+        });
 
-    await api.ready;
+        return new Promise((resolve) => {
+            this.api.renderFinished.on(() => {
+                console.log('RENDER FINISHED');
+                resolve();
+            });
 
-    api.tex(fullTex);
+            this.api.tex(tex);
+        });
+    },
 
-    rendered = true;
-}
+    // Call this instead of play() – it waits for the player to be ready
+    playOnce(volume) {
+        console.log('playOnce called, _playRequested:', this._playRequested, 'isPlaying:', this.api?.isPlaying);
+        if (!this.api || this._playRequested || this.api.isPlaying) return;
+        this._playRequested = true;
 
-function play() {
-    if (!api) return;
+        this.api.masterVolume = volume ?? 0.8;
 
-    // 🧨 Prevent double playback
-    if (api.isPlaying) {
-        console.log('Already playing, skipping...');
-        return;
-    }
+        // If the SoundFont is already decoded, start immediately
+        if (this.api.isSoundFontLoaded) {
+            this.api.play();
+            return;
+        }
 
-    // 🧹 Always reset before play (prevents overlap)
-    try {
-        api.stop();
-    } catch (e) { }
+        // Otherwise wait for the SoundFont to finish loading
+        const listener = () => {
+            if (this.api && !this.api.isPlaying) {
+                this.api.play();
+            }
+            // Clean up to avoid memory leaks
+            if (this.api) {
+                this.api.soundFontLoaded.off(listener);
+            }
+        };
+        this.api.soundFontLoaded.on(listener);
+    },
 
-    console.log('START PLAYBACK');
+    // Basic controls
+    play() {
+        if (!this.api) return;
+        if (!this.api.isPlaying) this.api.play();
+    },
 
-    api.play();
-}
+    stop() {
+        if (!this.api) return;
+        this.api.stop();
+        this._playRequested = false;
+    },
 
-function pause() {
-    if (api) {
-        api.pause();
-    }
-}
-
-function stop() {
-    if (api) {
-        api.stop();
-    }
-}
-
-function destroy() {
-    rendered = false;
-
-    if (api) {
-        try { api.destroy(); } catch (e) { }
-        api = null;
-    }
-}
-
-window.alphaTabEngine = {
-    render,
-    play,
-    pause,
-    stop,
-    destroy,
+    destroy() {
+        if (!this.api) return;
+        this.api.destroy();
+        this.api = null;
+        this._playRequested = false;
+    },
 };
+
+window.alphaTabEngine = engine;

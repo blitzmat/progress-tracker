@@ -125,61 +125,56 @@ class GuitarWarmupExercisesSeeder extends Seeder
 
     private function chromaticTex(): string
     {
-        // Walk up 1-2-3-4 on each string (6th to 1st), eighth notes
-        $bars = [];
         $strings = [6, 5, 4, 3, 2, 1];
         $frets = [1, 2, 3, 4];
-        $bar = '';
+
+        $notes = [];
+
         foreach ($strings as $s) {
             foreach ($frets as $f) {
-                $bar .= "$f.$s ";
+                $notes[] = "$f.$s";
             }
         }
-        $bars[] = rtrim($bar);
-        // Repeat the pattern for a total of 4 bars
-        $melody = implode(' | ', array_fill(0, 4, $bars[0]));
 
-        return "\\tuning E4 B3 G3 D3 A2 E2\n\\staff{score tabs}\n:8 $melody";
+        $bar = implode(' ', $notes);
+
+        return ":8 {$bar} |{$bar} |{$bar} |{$bar}";
     }
 
     private function spiderTex(): string
     {
-        // Spider walk: 1.6 2.5 3.4 4.3 1.5 2.4 3.3 4.2 etc.
         $pairs = [
             [1,6], [2,5], [3,4], [4,3],
             [1,5], [2,4], [3,3], [4,2],
             [1,4], [2,3], [3,2], [4,1],
             [1,3], [2,2], [3,1], [4,6],
         ];
-        $notes = implode(' ', array_map(fn($p) => "{$p[0]}.{$p[1]}", $pairs));
-        $melody = "$notes | $notes | $notes | $notes";
 
-        return "\\tuning E4 B3 G3 D3 A2 E2\n\\staff{score tabs}\n:16 $melody";
+        $notes = implode(' ', array_map(
+            fn($p) => "{$p[0]}.{$p[1]}",
+            $pairs
+        ));
+
+        return ":16 {$notes} | {$notes} | {$notes} | {$notes}";
     }
 
     private function pentatonicTex(): string
     {
-        // A minor pentatonic box 1, eighth notes
         $asc = '5.6 8.6 5.5 7.5 5.4 7.4 5.3 7.3 5.2 8.2 5.1 8.1';
         $desc = '8.1 5.1 8.2 5.2 7.3 5.3 7.4 5.4 7.5 5.5 8.6 5.6';
-        $melody = "$asc | $desc | $asc | $desc";
 
-        return "\\tuning E4 B3 G3 D3 A2 E2\n\\staff{score tabs}\n:8 $melody";
+        return ":8 {$asc} | {$desc} | {$asc} | {$desc}";
     }
 
     private function trillTex(): string
     {
-        // Trills: 1h2p1h2p... on each string, 16th notes
-        $trillPairs = [
-            ['1.6', '2.6'], ['2.5', '3.5'], ['3.4', '4.4'],
-            ['4.3', '3.3'], ['3.2', '2.2'], ['2.1', '1.1'],
+        $bars = [
+            '1.6h2.6p1.6h2.6p1.6h2.6p1.6h2.6',
+            '2.5h3.5p2.5h3.5p2.5h3.5p2.5h3.5',
+            '3.4h4.4p3.4h4.4p3.4h4.4p3.4h4.4',
+            '4.3h3.3p4.3h3.3p4.3h3.3p4.3h3.3',
         ];
-        $bars = [];
-        foreach ($trillPairs as [$a, $b]) {
-            $bars[] = "$a {h} $b {p} $a {h} $b {p} $a {h} $b {p} $a {h} $b {p}";
-        }
-        $melody = implode(' | ', $bars);
 
-        return "\\tuning E4 B3 G3 D3 A2 E2\n\\staff{score tabs}\n:16 $melody";
+        return ":16 " . implode(" | ", $bars);
     }
 }

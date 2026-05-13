@@ -13,10 +13,11 @@ return new class extends Migration
     {
         Schema::create('activities', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('user_id')->nullable()->constrained()->cascadeOnDelete();
             $table->foreignId('goal_id')->constrained()->cascadeOnDelete();
             $table->string('name');
             $table->text('description')->nullable();
+            $table->json('widget_settings')->nullable();
             $table->timestamps();
         });
     }

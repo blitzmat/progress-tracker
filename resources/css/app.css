@@ -1,3 +1,26 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.at-wrap {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+}
+
+.at-viewport {
+    overflow-x: auto;
+    overflow-y: hidden;
+    width: 100%;
+}
+
+#alphaTab-container {
+    min-height: 220px;
+}
+.at-cursor-beat {
+    background: #ff3366;
+    opacity: 0.5;
+}
+
+

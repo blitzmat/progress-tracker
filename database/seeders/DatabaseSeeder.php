@@ -22,5 +22,6 @@ class DatabaseSeeder extends Seeder
             'password' => bcrypt('blitzmat'),
         ]);
         $this->call(GuitarMasterySeeder::class);
+        $this->call(GuitarWarmupExercisesSeeder::class);
     }
 }
