@@ -168,19 +168,15 @@
                                 </div>
 
                                 {{-- Countdown Overlay --}}
-                                <div x-data="{ showCountdown: false, countdownNumber: 3 }" x-init="$watch('$root.showCountdown', value => showCountdown = value);
-                                $watch('$root.countdownNumber', value => countdownNumber = value)">
+                                <div x-show="showCountdown" x-cloak x-transition.opacity
+                                    class="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+                                    <div class="text-center select-none">
+                                        <div x-text="countdownNumber > 0 ? countdownNumber : 'GO!'"
+                                            class="text-8xl md:text-9xl font-bold text-white drop-shadow-lg"></div>
 
-                                    <div x-show="showCountdown" x-cloak
-                                        class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
-
-                                        <div class="text-center">
-                                            <div x-text="countdownNumber" class="text-8xl font-bold text-white"></div>
-
-                                            <div x-show="countdownNumber === 0" class="text-3xl font-bold text-white">
-                                                Go!
-                                            </div>
-                                        </div>
+                                        <p class="mt-4 text-white text-lg tracking-widest uppercase">
+                                            Get Ready
+                                        </p>
                                     </div>
                                 </div>
                             </div>

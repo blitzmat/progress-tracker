@@ -21,7 +21,8 @@ window.timerComponentData = function ($wire) {
             this.secondsRemaining = this.$wire.get('timerDuration') * 60 || 0;
 
             if (this.hasAlphaTab) {
-                this.startCountdown();
+                this.renderAlphaTab(); // render immediately
+                this.startCountdown(); // playback delayed
             } else {
                 this.startTimers();
             }
@@ -38,25 +39,41 @@ window.timerComponentData = function ($wire) {
                 if (api) api.masterVolume = value;
             });
 
-            this.$watch('alphaTabTex', () => {
-                if (this.hasAlphaTab) {
-                    this.hasRenderedAlphaTab = false;
-                    window.alphaTabEngine.destroy();
-                    this.startTimers();
-                }
-            });
+        },
+
+        async renderAlphaTab() {
+            if (!this.hasAlphaTab || this.hasRenderedAlphaTab) return;
+
+            this.hasRenderedAlphaTab = true;
+
+            const settings = {
+                tex: this.alphaTabTex,
+                tempo: this.alphaTabTempo,
+                volume: this.alphaTabVolume,
+                timeSignature: this.alphaTabTimeSignature,
+            };
+
+            await window.alphaTabEngine.render(
+                '#alphaTab-container',
+                settings
+            );
         },
 
         startCountdown() {
             if (this.showCountdown) return;
+
             this.showCountdown = true;
             this.countdownNumber = 3;
 
             const cd = setInterval(() => {
                 this.countdownNumber--;
-                if (this.countdownNumber <= 0) {
+
+                // show GO! briefly
+                if (this.countdownNumber < 0) {
                     clearInterval(cd);
+
                     this.showCountdown = false;
+
                     this.startTimers();
                 }
             }, 1000);
@@ -67,25 +84,16 @@ window.timerComponentData = function ($wire) {
 
             this.interval = setInterval(() => {
                 this.secondsRemaining--;
+
                 if (this.secondsRemaining <= 0) {
                     this.cleanUp();
                     this.$wire.dispatch('timer-completed');
                 }
             }, 1000);
 
-            if (this.hasAlphaTab && !this.hasRenderedAlphaTab) {
-                this.hasRenderedAlphaTab = true;
-
-                const settings = {
-                    tex: this.alphaTabTex,
-                    tempo: this.alphaTabTempo,
-                    volume: this.alphaTabVolume,
-                    timeSignature: this.alphaTabTimeSignature,
-                };
-
-                window.alphaTabEngine.render('#alphaTab-container', settings).then(() => {
-                    window.alphaTabEngine.playOnce(this.alphaTabVolume);
-                });
+            // ONLY PLAY HERE
+            if (this.hasAlphaTab) {
+                window.alphaTabEngine.playOnce(this.alphaTabVolume);
             }
         },
 
@@ -115,4 +123,4 @@ window.timerComponentData = function ($wire) {
             this.cleanUp();
         },
     };
-};
+};;
